@@ -283,3 +283,41 @@ export const accountOperations = {
         }
     }
 };
+// 预算操作
+export const budgetOperations = {
+    async getAll(): Promise<Budget[]> {
+        return await db.budgets.toArray();
+    },
+
+    async getByPeriod(period: string): Promise<Budget[]> {
+        return await db.budgets.where('period').equals(period).toArray();
+    },
+
+    async add(budget: Omit<Budget, 'id'>): Promise<string> {
+        const id = generateId();
+        await db.budgets.add({ ...budget, id });
+        return id;
+    },
+
+    async update(id: string, budget: Partial<Budget>): Promise<void> {
+        await db.budgets.update(id, budget);
+    },
+
+    async delete(id: string): Promise<void> {
+        await db.budgets.delete(id);
+    },
+
+    async setBudget(budget: Omit<Budget, 'id'>): Promise<string> {
+        // 如果已存在该分类该周期的预算，则更新，否则新增
+        const existing = await db.budgets
+            .where({ categoryId: budget.categoryId, period: budget.period })
+            .first();
+
+        if (existing) {
+            await this.update(existing.id, budget);
+            return existing.id;
+        } else {
+            return await this.add(budget);
+        }
+    }
+};

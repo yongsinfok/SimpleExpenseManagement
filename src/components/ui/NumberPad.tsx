@@ -95,17 +95,20 @@ export function NumberPad({
                     onClick={onConfirm}
                     disabled={!value || value === '0' || value === '.'}
                     className={`
-            w-full mt-2 h-14 rounded-[var(--radius-md)]
-            bg-[var(--color-primary)] text-white
-            text-lg font-semibold
-            flex items-center justify-center gap-2
-            transition-all duration-150
-            active:scale-[0.98]
-            disabled:opacity-50 disabled:cursor-not-allowed
-          `}
+                        w-full mt-2 h-14 rounded-[var(--radius-md)]
+                        transition-all duration-200
+                        flex items-center justify-center gap-2
+                        text-lg font-bold
+                        active:scale-[0.98]
+                        disabled:cursor-not-allowed
+                        ${(!value || value === '0' || value === '.')
+                            ? 'bg-[var(--color-bg-card)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                            : 'bg-[var(--color-primary)] text-white shadow-lg shadow-indigo-500/30 ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-bg-card)]'
+                        }
+                    `}
                 >
-                    <Check size={24} />
-                    完成
+                    <Check size={24} strokeWidth={3} />
+                    <span>完成</span>
                 </button>
             )}
         </div>

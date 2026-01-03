@@ -91,12 +91,12 @@ export function AddTransaction({ isOpen, onClose, onSuccess }: AddTransactionPro
                                 type="button"
                                 onClick={() => setType('expense')}
                                 className={`
-                  flex-1 py-2 rounded-[var(--radius-md)] font-medium transition-colors
-                  ${type === 'expense'
-                                        ? 'bg-[var(--color-expense)] text-white'
-                                        : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
+                                    flex-1 py-2 rounded-[var(--radius-md)] font-bold transition-all border
+                                    ${type === 'expense'
+                                        ? 'bg-[var(--color-expense)] text-white border-[var(--color-expense)] shadow-sm'
+                                        : 'bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] border-[var(--color-border)] opacity-70 hover:opacity-100'
                                     }
-                `}
+                                `}
                             >
                                 支出
                             </button>
@@ -104,12 +104,12 @@ export function AddTransaction({ isOpen, onClose, onSuccess }: AddTransactionPro
                                 type="button"
                                 onClick={() => setType('income')}
                                 className={`
-                  flex-1 py-2 rounded-[var(--radius-md)] font-medium transition-colors
-                  ${type === 'income'
-                                        ? 'bg-[var(--color-income)] text-white'
-                                        : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
+                                    flex-1 py-2 rounded-[var(--radius-md)] font-bold transition-all border
+                                    ${type === 'income'
+                                        ? 'bg-[var(--color-income)] text-white border-[var(--color-income)] shadow-sm'
+                                        : 'bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] border-[var(--color-border)] opacity-70 hover:opacity-100'
                                     }
-                `}
+                                `}
                             >
                                 收入
                             </button>

@@ -3,8 +3,9 @@ import { TabBar, type TabId } from './components/layout';
 import { AddTransaction } from './components/AddTransaction';
 import { HomePage, BillsPage, ChartsPage, ProfilePage } from './pages';
 import { useInitializeData } from './hooks/useTransactions';
+import { ThemeProvider } from './contexts/ThemeContext';
 
-function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const { isInitialized, error } = useInitializeData();
@@ -88,4 +89,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}

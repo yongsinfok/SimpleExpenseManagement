@@ -1,10 +1,11 @@
-import { format } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { format, startOfMonth } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Wallet } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { Card, CardHeader } from '../components/ui';
-import { useMonthTransactions, useTransactionSummary, useTodayTransactions, useCategories, useGroupedTransactions } from '../hooks/useTransactions';
-import type { Transaction, Category } from '../types';
+import { useMonthTransactions, useTransactionSummary, useTodayTransactions, useCategories } from '../hooks/useTransactions';
+import { useBudgets } from '../hooks/useBudgets';
 
 interface HomePageProps {
     onViewAllBills: () => void;
@@ -16,46 +17,85 @@ export function HomePage({ onViewAllBills }: HomePageProps) {
     const monthSummary = useTransactionSummary(monthTransactions);
     const todaySummary = useTransactionSummary(todayTransactions);
     const categories = useCategories();
+    const { budgets } = useBudgets(format(new Date(), 'yyyy-MM'));
 
     const categoryMap = new Map(categories.map(c => [c.id, c]));
+
+    // 计算各分类支出用于预算展示
+    const spendingByCategory = useMemo(() => {
+        return monthTransactions.reduce((acc, t) => {
+            if (t.type === 'expense') {
+                acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+    }, [monthTransactions]);
+
+    // 获取前2个快到期的预算或最大的预算
+    const budgetOverview = useMemo(() => {
+        return budgets
+            .map(b => {
+                const spent = spendingByCategory[b.categoryId] || 0;
+                return {
+                    ...b,
+                    spent,
+                    percentage: (spent / b.amount) * 100,
+                    category: categoryMap.get(b.categoryId)
+                };
+            })
+            .sort((a, b) => b.percentage - a.percentage)
+            .slice(0, 2);
+    }, [budgets, spendingByCategory, categoryMap]);
 
     // 获取今天的前5笔账单
     const recentTransactions = todayTransactions.slice(0, 5);
 
     return (
-        <div className="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4">
+        <div className="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4 animate-in fade-in duration-500">
             {/* 月度统计卡片 */}
-            <Card className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white overflow-hidden">
+            <Card className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white overflow-hidden shadow-lg shadow-[var(--color-primary)]/20">
                 <div className="p-5">
-                    <p className="text-white/80 text-sm mb-1">
-                        {format(new Date(), 'yyyy年M月', { locale: zhCN })}
-                    </p>
+                    <div className="flex justify-between items-start mb-4">
+                        <p className="text-white/80 text-sm">
+                            {format(new Date(), 'yyyy年M月', { locale: zhCN })}
+                        </p>
+                        <Wallet size={20} className="text-white/30" />
+                    </div>
 
-                    <div className="grid grid-cols-3 gap-4 mt-4">
-                        {/* 支出 */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-white/70 text-xs mb-1">支出</p>
-                            <p className="text-xl font-bold">
-                                RM{monthSummary.expense.toFixed(2)}
+                            <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider mb-1">本月支出</p>
+                            <p className="text-2xl font-black">
+                                RM {monthSummary.expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </p>
                         </div>
-
-                        {/* 收入 */}
-                        <div>
-                            <p className="text-white/70 text-xs mb-1">收入</p>
-                            <p className="text-xl font-bold">
-                                RM{monthSummary.income.toFixed(2)}
-                            </p>
-                        </div>
-
-                        {/* 结余 */}
-                        <div>
-                            <p className="text-white/70 text-xs mb-1">结余</p>
-                            <p className={`text-xl font-bold ${monthSummary.balance >= 0 ? '' : 'text-red-300'}`}>
-                                RM{monthSummary.balance.toFixed(2)}
+                        <div className="text-right">
+                            <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider mb-1">本月收入</p>
+                            <p className="text-2xl font-black">
+                                RM {monthSummary.income.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </p>
                         </div>
                     </div>
+
+                    {/* 简易预算进度 */}
+                    {budgetOverview.length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+                            {budgetOverview.map(budget => (
+                                <div key={budget.id}>
+                                    <div className="flex justify-between text-[10px] font-bold mb-1.5">
+                                        <span className="opacity-80">{budget.category?.name} 预算</span>
+                                        <span>{budget.percentage.toFixed(0)}%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-white transition-all duration-1000"
+                                            style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </Card>
 
