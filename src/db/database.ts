@@ -195,6 +195,33 @@ export const categoryOperations = {
 
     async getById(id: string): Promise<Category | undefined> {
         return db.categories.get(id);
+    },
+
+    async add(data: Omit<Category, 'id'>): Promise<string> {
+        const id = generateId();
+        await db.categories.add({
+            ...data,
+            id,
+            isCustom: true
+        });
+        return id;
+    },
+
+    async update(id: string, data: Partial<Category>): Promise<void> {
+        await db.categories.update(id, data);
+    },
+
+    async delete(id: string): Promise<void> {
+        // 检查是否有账单使用了该分类
+        const count = await db.transactions.where('categoryId').equals(id).count();
+        if (count > 0) {
+            throw new Error('无法删除：该分类下已有账单记录');
+        }
+        const category = await db.categories.get(id);
+        if (category && !category.isCustom) {
+            throw new Error('无法删除：系统预设分类不能删除');
+        }
+        await db.categories.delete(id);
     }
 };
 
@@ -206,6 +233,46 @@ export const accountOperations = {
 
     async getById(id: string): Promise<Account | undefined> {
         return db.accounts.get(id);
+    },
+
+    async add(data: Omit<Account, 'id' | 'balance'>): Promise<string> {
+        const id = generateId();
+        await db.accounts.add({
+            ...data,
+            id,
+            balance: data.initialBalance,
+        });
+        return id;
+    },
+
+    async update(id: string, data: Partial<Account>): Promise<void> {
+        const account = await db.accounts.get(id);
+        if (!account) return;
+
+        // 如果修改了初始余额，需要相应调整当前余额
+        if (data.initialBalance !== undefined && data.initialBalance !== account.initialBalance) {
+            const diff = data.initialBalance - account.initialBalance;
+            const newBalance = account.balance + diff;
+            await db.accounts.update(id, { ...data, balance: newBalance });
+        } else {
+            await db.accounts.update(id, data);
+        }
+    },
+
+    async delete(id: string): Promise<void> {
+        // 检查是否有账单使用了该分类
+        const count = await db.transactions.where('accountId').equals(id).count();
+        if (count > 0) {
+            throw new Error('无法删除：该账户下已有账单记录');
+        }
+
+        // 不能删除最后一个账户
+        const total = await db.accounts.count();
+        if (total <= 1) {
+            throw new Error('无法删除：至少需要保留一个账户');
+        }
+
+        await db.accounts.delete(id);
     },
 
     async updateBalance(id: string, amount: number, isIncome: boolean): Promise<void> {
