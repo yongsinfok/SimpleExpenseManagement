@@ -65,31 +65,41 @@ export function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+// 正在初始化的标记，防止并发调用
+let isInitializing = false;
+
 // 初始化默认数据
 export async function initializeDefaultData(): Promise<void> {
-    const categoriesCount = await db.categories.count();
-    const accountsCount = await db.accounts.count();
+    if (isInitializing) return;
+    isInitializing = true;
 
-    if (categoriesCount === 0) {
-        const allCategories = [...defaultExpenseCategories, ...defaultIncomeCategories].map(cat => ({
-            ...cat,
-            id: generateId()
-        }));
-        await db.categories.bulkAdd(allCategories);
-    }
+    try {
+        const categoriesCount = await db.categories.count();
+        const accountsCount = await db.accounts.count();
 
-    if (accountsCount === 0) {
-        const allAccounts = defaultAccounts.map(acc => ({
-            ...acc,
-            id: generateId()
-        }));
-        await db.accounts.bulkAdd(allAccounts);
-
-        // 设置默认账户
-        const settings = getSettings();
-        if (!settings.defaultAccountId && allAccounts.length > 0) {
-            saveSettings({ ...settings, defaultAccountId: allAccounts[0].id });
+        if (categoriesCount === 0) {
+            const allCategories = [...defaultExpenseCategories, ...defaultIncomeCategories].map(cat => ({
+                ...cat,
+                id: generateId()
+            }));
+            await db.categories.bulkAdd(allCategories);
         }
+
+        if (accountsCount === 0) {
+            const allAccounts = defaultAccounts.map(acc => ({
+                ...acc,
+                id: generateId()
+            }));
+            await db.accounts.bulkAdd(allAccounts);
+
+            // 设置默认账户
+            const settings = getSettings();
+            if (!settings.defaultAccountId && allAccounts.length > 0) {
+                saveSettings({ ...settings, defaultAccountId: allAccounts[0].id });
+            }
+        }
+    } finally {
+        isInitializing = false;
     }
 }
 
