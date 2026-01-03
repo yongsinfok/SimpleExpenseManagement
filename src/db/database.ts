@@ -23,37 +23,35 @@ class AccountingDatabase extends Dexie {
 // 创建数据库实例
 export const db = new AccountingDatabase();
 
-// 默认支出分类
-export const defaultExpenseCategories: Omit<Category, 'id'>[] = [
-    { name: '餐饮', type: 'expense', icon: 'Utensils', color: '#F59E0B', order: 0, isCustom: false },
-    { name: '交通', type: 'expense', icon: 'Car', color: '#3B82F6', order: 1, isCustom: false },
-    { name: '购物', type: 'expense', icon: 'ShoppingBag', color: '#EC4899', order: 2, isCustom: false },
-    { name: '娱乐', type: 'expense', icon: 'Gamepad2', color: '#8B5CF6', order: 3, isCustom: false },
-    { name: '医疗', type: 'expense', icon: 'Heart', color: '#EF4444', order: 4, isCustom: false },
-    { name: '住房', type: 'expense', icon: 'Home', color: '#10B981', order: 5, isCustom: false },
-    { name: '教育', type: 'expense', icon: 'GraduationCap', color: '#06B6D4', order: 6, isCustom: false },
-    { name: '其他', type: 'expense', icon: 'MoreHorizontal', color: '#6B7280', order: 7, isCustom: false },
+// 默认支出分类 (带固定 ID 防止重复)
+export const defaultExpenseCategories: Category[] = [
+    { id: 'exp_food', name: '餐饮', type: 'expense', icon: 'Utensils', color: '#F59E0B', order: 0, isCustom: false },
+    { id: 'exp_trans', name: '交通', type: 'expense', icon: 'Car', color: '#3B82F6', order: 1, isCustom: false },
+    { id: 'exp_shop', name: '购物', type: 'expense', icon: 'ShoppingBag', color: '#EC4899', order: 2, isCustom: false },
+    { id: 'exp_ent', name: '娱乐', type: 'expense', icon: 'Gamepad2', color: '#8B5CF6', order: 3, isCustom: false },
+    { id: 'exp_med', name: '医疗', type: 'expense', icon: 'Heart', color: '#EF4444', order: 4, isCustom: false },
+    { id: 'exp_home', name: '住房', type: 'expense', icon: 'Home', color: '#10B981', order: 5, isCustom: false },
+    { id: 'exp_edu', name: '教育', type: 'expense', icon: 'GraduationCap', color: '#06B6D4', order: 6, isCustom: false },
+    { id: 'exp_other', name: '其他', type: 'expense', icon: 'MoreHorizontal', color: '#6B7280', order: 7, isCustom: false },
 ];
 
-// 默认收入分类
-export const defaultIncomeCategories: Omit<Category, 'id'>[] = [
-    { name: '工资', type: 'income', icon: 'Wallet', color: '#10B981', order: 0, isCustom: false },
-    { name: '兼职', type: 'income', icon: 'Briefcase', color: '#3B82F6', order: 1, isCustom: false },
-    { name: '投资', type: 'income', icon: 'TrendingUp', color: '#8B5CF6', order: 2, isCustom: false },
-    { name: '其他', type: 'income', icon: 'MoreHorizontal', color: '#6B7280', order: 3, isCustom: false },
+// 默认收入分类 (带固定 ID 防止重复)
+export const defaultIncomeCategories: Category[] = [
+    { id: 'inc_salary', name: '工资', type: 'income', icon: 'Wallet', color: '#10B981', order: 0, isCustom: false },
+    { id: 'inc_part', name: '兼职', type: 'income', icon: 'Briefcase', color: '#3B82F6', order: 1, isCustom: false },
+    { id: 'inc_inv', name: '投资', type: 'income', icon: 'TrendingUp', color: '#8B5CF6', order: 2, isCustom: false },
+    { id: 'inc_other', name: '其他', type: 'income', icon: 'MoreHorizontal', color: '#6B7280', order: 3, isCustom: false },
 ];
 
 // 默认账户
-export const defaultAccounts: Omit<Account, 'id'>[] = [
-    { name: '现金', type: 'cash', balance: 0, initialBalance: 0, icon: 'Banknote', color: '#10B981', order: 0 },
-    { name: '银行卡', type: 'bank', balance: 0, initialBalance: 0, icon: 'CreditCard', color: '#3B82F6', order: 1 },
-    { name: '支付宝', type: 'alipay', balance: 0, initialBalance: 0, icon: 'Smartphone', color: '#1677FF', order: 2 },
-    { name: '微信', type: 'wechat', balance: 0, initialBalance: 0, icon: 'MessageCircle', color: '#07C160', order: 3 },
+export const defaultAccounts: Account[] = [
+    { id: 'acc_cash', name: '现金', type: 'cash', balance: 0, initialBalance: 0, icon: 'Banknote', color: '#10B981', order: 0 },
+    { id: 'acc_bank', name: '银行卡', type: 'bank', balance: 0, initialBalance: 0, icon: 'CreditCard', color: '#3B82F6', order: 1 },
 ];
 
 // 默认设置
 export const defaultSettings: Settings = {
-    defaultAccountId: '',
+    defaultAccountId: 'acc_cash',
     theme: 'system',
     currency: 'MYR',
     currencySymbol: 'RM',
@@ -65,7 +63,7 @@ export function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
-// 正在初始化的标记，防止并发调用
+// 正在初始化的标记
 let isInitializing = false;
 
 // 初始化默认数据
@@ -77,25 +75,27 @@ export async function initializeDefaultData(): Promise<void> {
         const categoriesCount = await db.categories.count();
         const accountsCount = await db.accounts.count();
 
-        if (categoriesCount === 0) {
-            const allCategories = [...defaultExpenseCategories, ...defaultIncomeCategories].map(cat => ({
-                ...cat,
-                id: generateId()
-            }));
-            await db.categories.bulkAdd(allCategories);
+        // 如果数据库不为空，检查并清理之前错误生成的重复项
+        if (categoriesCount > 0) {
+            const presetIds = new Set([...defaultExpenseCategories, ...defaultIncomeCategories].map(c => c.id));
+            const allCategories = await db.categories.toArray();
+            const idsToDelete = allCategories
+                .filter(cat => !presetIds.has(cat.id) && !cat.isCustom)
+                .map(cat => cat.id);
+
+            if (idsToDelete.length > 0) {
+                await db.categories.bulkDelete(idsToDelete);
+            }
         }
 
-        if (accountsCount === 0) {
-            const allAccounts = defaultAccounts.map(acc => ({
-                ...acc,
-                id: generateId()
-            }));
-            await db.accounts.bulkAdd(allAccounts);
+        // 无论如何，确保预设分类（带固定 ID）在位
+        await db.categories.bulkPut([...defaultExpenseCategories, ...defaultIncomeCategories]);
 
-            // 设置默认账户
+        if (accountsCount === 0 || accountsCount < defaultAccounts.length) {
+            await db.accounts.bulkPut(defaultAccounts);
             const settings = getSettings();
-            if (!settings.defaultAccountId && allAccounts.length > 0) {
-                saveSettings({ ...settings, defaultAccountId: allAccounts[0].id });
+            if (!settings.defaultAccountId) {
+                saveSettings({ ...settings, defaultAccountId: defaultAccounts[0].id });
             }
         }
     } finally {
