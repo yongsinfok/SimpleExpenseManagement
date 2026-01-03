@@ -88,15 +88,26 @@ export async function initializeDefaultData(): Promise<void> {
             }
         }
 
-        // 无论如何，确保预设分类（带固定 ID）在位
-        await db.categories.bulkPut([...defaultExpenseCategories, ...defaultIncomeCategories]);
+        // 账户清理逻辑
+        if (accountsCount > 0) {
+            const presetAccountIds = new Set(defaultAccounts.map(a => a.id));
+            const allAccounts = await db.accounts.toArray();
+            const accountIdsToDelete = allAccounts
+                .filter(acc => !presetAccountIds.has(acc.id))
+                .map(acc => acc.id);
 
-        if (accountsCount === 0 || accountsCount < defaultAccounts.length) {
-            await db.accounts.bulkPut(defaultAccounts);
-            const settings = getSettings();
-            if (!settings.defaultAccountId) {
-                saveSettings({ ...settings, defaultAccountId: defaultAccounts[0].id });
+            if (accountIdsToDelete.length > 0) {
+                await db.accounts.bulkDelete(accountIdsToDelete);
             }
+        }
+
+        // 无论如何，确保预设分类和账户（带固定 ID）在位
+        await db.categories.bulkPut([...defaultExpenseCategories, ...defaultIncomeCategories]);
+        await db.accounts.bulkPut(defaultAccounts);
+
+        const settings = getSettings();
+        if (!settings.defaultAccountId || !defaultAccounts.find(a => a.id === settings.defaultAccountId)) {
+            saveSettings({ ...settings, defaultAccountId: defaultAccounts[0].id });
         }
     } finally {
         isInitializing = false;

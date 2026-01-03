@@ -184,10 +184,14 @@ export function AddTransaction({ isOpen, onClose, onSuccess }: AddTransactionPro
                             <select
                                 value={selectedAccountId}
                                 onChange={(e) => setSelectedAccountId(e.target.value)}
-                                className="flex-1 bg-transparent text-[var(--color-text)]"
+                                className="flex-1 bg-transparent text-[var(--color-text)] appearance-none outline-none"
                             >
                                 {accounts.map((account) => (
-                                    <option key={account.id} value={account.id}>
+                                    <option
+                                        key={account.id}
+                                        value={account.id}
+                                        className="bg-[var(--color-bg-card)] text-[var(--color-text)]"
+                                    >
                                         {account.name}
                                     </option>
                                 ))}
