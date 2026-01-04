@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# 简记账 (Jijizhang)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个简洁、优雅且高效的个人记账 PWA 应用。
 
-Currently, two official plugins are available:
+## 特性
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **隐私至上**：所有数据均存储在浏览器本地 (IndexedDB)，不上传服务器。
+- **PWA 支持**：可作为应用安装在手机桌面上，离线可用。
+- **现代化设计**：基于 React 19 + Tailwind CSS 构建，拥有流畅的动画和精美的 UI。
+- **图表分析**：直观展示每月收支趋势和比例。
+- **应用锁**：支持设置 PIN 码保护隐私。
+- **多账户管理**：轻松管理现金、银行卡、电子钱包等。
+- **预算系统**：设定消费限额，防止超支。
 
-## React Compiler
+## 部署到 Vercel
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+本项目已配置好 Vercel 部署。您可以直接连接您的 GitHub 仓库：
 
-## Expanding the ESLint configuration
+1. 将代码推送到 GitHub。
+2. 在 Vercel 后台点击 **Add New Project**。
+3. 导入您的仓库。
+4. Vercel 会自动识别 Vite 项目并进行部署。
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 本地开发
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# 安装依赖
+npm install
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# 启动开发服务器
+npm run dev
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 构建生产版本
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 技术栈
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **框架**: [React 19](https://react.dev/)
+- **构建工具**: [Vite 7](https://vite.dev/)
+- **数据库**: [Dexie.js](https://dexie.org/) (IndexedDB wrapper)
+- **样式**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **图标**: [Lucide React](https://lucide.dev/)
+- **组件库**: 原生 UI 组件
+- **状态管理**: React Hooks
+- **PWA**: [Vite Plugin PWA](https://vite-pwa-org.netlify.app/)
