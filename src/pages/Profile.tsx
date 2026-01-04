@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { CreditCard, PieChart, Download, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database } from 'lucide-react';
-import { useTransactions, useAccounts } from '../hooks/useTransactions';
+import { CreditCard, PieChart, Download, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAccounts } from '../hooks/useTransactions';
+import { useSecurity } from '../contexts/SecurityContext';
+import { Modal, NumberPad } from '../components/ui';
 import { db } from '../db/database';
 import { AccountManagement } from './AccountManagement';
 import { CategoryManagement } from './CategoryManagement';
@@ -10,12 +13,21 @@ import { useTheme } from '../contexts/ThemeContext';
 type ProfileView = 'main' | 'accounts' | 'categories' | 'budgets';
 
 export function ProfilePage() {
+    // 1. All Hooks First
     const accounts = useAccounts();
     const [view, setView] = useState<ProfileView>('main');
+    const { hasPin, setPin, removePin } = useSecurity();
+    const { theme, setTheme } = useTheme();
 
-    // 计算总资产
+    const [showPinSetup, setShowPinSetup] = useState(false);
+    const [pinStep, setPinStep] = useState<'create' | 'confirm'>('create');
+    const [firstPin, setFirstPin] = useState('');
+    const [inputPin, setInputPin] = useState('');
+
+    // 2. Calculations
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
 
+    // 3. Handlers
     const handleExportData = async () => {
         try {
             const transactions = await db.transactions.toArray();
@@ -39,10 +51,10 @@ export function ProfilePage() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            alert('数据导出成功！建议妥善保管。');
+            toast.success('数据导出成功！建议妥善保管。');
         } catch (error) {
             console.error('Export failed:', error);
-            alert('导出失败');
+            toast.error('导出失败');
         }
     };
 
@@ -57,16 +69,103 @@ export function ProfilePage() {
                         db.budgets.clear()
                     ]);
                     localStorage.clear();
-                    alert('数据已清空');
-                    window.location.reload();
+                    toast.success('数据已清空');
+                    setTimeout(() => window.location.reload(), 1000);
                 } catch (error) {
                     console.error('Clear failed:', error);
-                    alert('清空失败');
+                    toast.error('清空失败');
                 }
             }
         }
     };
 
+    const handlePinAction = () => {
+        if (hasPin) {
+            if (confirm('确定要关闭应用锁吗？')) {
+                removePin();
+            }
+        } else {
+            setPinStep('create');
+            setFirstPin('');
+            setInputPin('');
+            setShowPinSetup(true);
+        }
+    };
+
+    const handlePinInput = (value: string) => {
+        if (value.length > 4) return;
+        setInputPin(value);
+
+        if (value.length === 4) {
+            if (pinStep === 'create') {
+                setFirstPin(value);
+                setPinStep('confirm');
+                setTimeout(() => setInputPin(''), 300);
+            } else {
+                if (value === firstPin) {
+                    setPin(value);
+                    setShowPinSetup(false);
+                    toast.success('应用锁已开启');
+                } else {
+                    toast.error('两次输入的密码不一致，请重试');
+                    setPinStep('create');
+                    setFirstPin('');
+                    setInputPin('');
+                }
+            }
+        }
+    };
+
+    // 4. Constants
+    interface MenuItem {
+        icon: any;
+        label: string;
+        description: string;
+        onClick: () => void;
+        danger?: boolean;
+    }
+
+    const menuItems: MenuItem[] = [
+        {
+            icon: CreditCard,
+            label: '账户管理',
+            description: '管理你的现金、银行卡等账户',
+            onClick: () => setView('accounts'),
+        },
+        {
+            icon: PieChart,
+            label: '分类管理',
+            description: '自定义收支分类和图标',
+            onClick: () => setView('categories'),
+        },
+        {
+            icon: Wallet,
+            label: '预算管理',
+            description: '设置每月消费限额',
+            onClick: () => setView('budgets'),
+        },
+        {
+            icon: Lock,
+            label: '应用锁',
+            description: hasPin ? '已开启' : '未开启',
+            onClick: handlePinAction,
+        },
+        {
+            icon: Download,
+            label: '导出数据',
+            description: '导出 CSV 格式的账单数据',
+            onClick: handleExportData,
+        },
+        {
+            icon: Shield,
+            label: '数据安全',
+            description: '备份或清除本地所有数据',
+            onClick: handleClearData,
+            danger: true,
+        },
+    ];
+
+    // 5. Conditional Returns (AFTER hooks)
     if (view === 'accounts') {
         return <AccountManagement onBack={() => setView('main')} />;
     }
@@ -75,67 +174,47 @@ export function ProfilePage() {
         return <CategoryManagement onBack={() => setView('main')} />;
     }
 
-    if (view === 'budgets') { // Added conditional rendering for BudgetManagement
+    if (view === 'budgets') {
         return <BudgetManagement onBack={() => setView('main')} />;
     }
 
-    const menuItems = [
-        {
-            icon: CreditCard,
-            label: '账户管理',
-            description: '管理你的现金、银行卡等账户',
-            onClick: () => setView('accounts'),
-        },
-        {
-            icon: PieChart, // Changed from PieChartIcon to PieChart
-            label: '分类管理',
-            description: '自定义收支分类和图标',
-            onClick: () => setView('categories'),
-        },
-        {
-            icon: Wallet, // New menu item for Budget Management
-            label: '预算管理',
-            description: '设置每月消费限额',
-            onClick: () => setView('budgets'),
-        },
-        {
-            icon: Download,
-            label: '导出数据', // Changed label
-            description: '导出 CSV 格式的账单数据', // Changed description
-            onClick: handleExportData, // Re-used existing handleExportData
-        },
-        {
-            icon: Shield, // New menu item for Data Security
-            label: '数据安全',
-            description: '备份或清除本地所有数据',
-            onClick: handleClearData, // Re-used existing handleClearData
-        },
-    ];
+    if (showPinSetup) {
+        return (
+            <Modal
+                isOpen={true}
+                onClose={() => setShowPinSetup(false)}
+                title={pinStep === 'create' ? '设置 PIN 码' : '确认 PIN 码'}
+            >
+                <div className="p-4">
+                    <div className="flex justify-center gap-4 mb-8">
+                        {[0, 1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className={`
+                                    w-4 h-4 rounded-full border-2 transition-all duration-200
+                                    ${inputPin.length > i
+                                        ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                                        : 'border-[var(--color-border)] bg-transparent'
+                                    }
+                                `}
+                            />
+                        ))}
+                    </div>
+                    <p className="text-center text-[var(--color-text-secondary)] mb-6">
+                        {pinStep === 'create' ? '请输入4位数字密码' : '请再次输入以确认'}
+                    </p>
+                    <NumberPad
+                        value={inputPin}
+                        onChange={handlePinInput}
+                        maxLength={4}
+                        hideDecimal
+                    />
+                </div>
+            </Modal>
+        );
+    }
 
-    // Re-calculating totalBalance based on the original logic, as the instruction only changed the hook, not the display logic.
-    // If the intent was to remove totalBalance display, this part should be removed.
-    // Assuming the display of totalBalance should remain, but the source of accounts might change.
-    // For now, I'll keep the original totalBalance calculation using a placeholder for accounts if useTransactions doesn't provide them directly.
-    // However, the instruction removed `const accounts = useAccounts(); ` and replaced it with `const { transactions } = useTransactions({}); `.
-    // This means `accounts` is no longer available directly from `useAccounts()`.
-    // To make the code syntactically correct and functional, I'll assume `useTransactions` might also provide accounts, or
-    // I'll need to re-introduce `useAccounts` if totalBalance display is critical.
-    // Given the instruction removed `const accounts = useAccounts(); ` and the `totalBalance` calculation,
-    // I will remove the `totalBalance` calculation and the related display logic for `totalBalance` and `accounts` overview.
-    // This is a significant change, but it aligns with the provided instruction's removal of `useAccounts` and `totalBalance` calculation.
-
-    // Re-evaluating: The instruction only provided a snippet for `ProfilePage` function start and `menuItems`.
-    // It did NOT explicitly remove the asset card or total balance display.
-    // The instruction changed `useAccounts()` to `useTransactions({})` and removed `totalBalance` calculation.
-    // This implies `accounts` might not be directly available or the total balance display is no longer desired.
-    // However, the asset card HTML is still present in the instruction's context.
-    // To avoid breaking the asset card display, I will re-introduce `useAccounts` and `totalBalance` calculation,
-    // as the instruction did not explicitly remove the asset card HTML.
-    // The instruction's `ProfilePage` snippet was incomplete and only showed the start of the function.
-    // I will keep `useAccounts` and `totalBalance` for now to maintain the existing UI structure.
-
-    const { theme, setTheme } = useTheme();
-
+    // 6. Main Render
     return (
         <div className="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4 animate-in fade-in duration-300">
             {/* 资产卡片 */}

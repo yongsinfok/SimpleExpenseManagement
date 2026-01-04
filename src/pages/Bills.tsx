@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfToday, subMonths, isWithinInterval } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Search, Filter, Trash2, Calendar, ChevronDown } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { Search, Filter, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { EmptyState } from '../components/ui';
 import { useTransactions, useCategories, useDeleteTransaction } from '../hooks/useTransactions';
-import type { Transaction, Category, TransactionType } from '../types';
+import { getIcon } from '../utils/icons';
+import type { Transaction, TransactionType } from '../types';
 
 type DateRange = 'today' | 'month' | 'lastMonth' | 'all';
 
@@ -102,6 +104,7 @@ export function BillsPage() {
     const handleDelete = async (id: string) => {
         if (confirm('确定要删除这笔账单吗？')) {
             await deleteTransaction(id);
+            toast.success('账单已删除');
         }
     };
 
@@ -186,9 +189,11 @@ export function BillsPage() {
             {/* 账单列表 */}
             <div className="px-4 space-y-4">
                 {groupedTransactions.length === 0 ? (
-                    <div className="text-center py-12 text-[var(--color-text-muted)]">
-                        <p>暂无账单记录</p>
-                    </div>
+                    <EmptyState
+                        icon={Search}
+                        title="暂无账单记录"
+                        description={searchKeyword ? "换个关键词试试看？" : "本月还没有任何收支记录"}
+                    />
                 ) : (
                     groupedTransactions.map((group) => (
                         <div key={group.date}>
@@ -218,16 +223,17 @@ export function BillsPage() {
                                 {group.transactions.map((transaction, index) => {
                                     const category = categoryMap.get(transaction.categoryId);
                                     const IconComponent = category
-                                        ? (LucideIcons as Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>>)[category.icon] || LucideIcons.HelpCircle
-                                        : LucideIcons.HelpCircle;
+                                        ? getIcon(category.icon)
+                                        : getIcon('HelpCircle');
 
                                     return (
                                         <div
                                             key={transaction.id}
                                             className={`
-                        flex items-center gap-3 p-3
+                        flex items-center gap-3 p-3 animate-slide-up
                         ${index < group.transactions.length - 1 ? 'border-b border-[var(--color-border)]' : ''}
                       `}
+                                            style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'both' }}
                                         >
                                             <div
                                                 className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"

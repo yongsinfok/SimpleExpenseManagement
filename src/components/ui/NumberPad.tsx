@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Delete, Check } from 'lucide-react';
 
 interface NumberPadProps {
@@ -6,15 +6,19 @@ interface NumberPadProps {
     onChange: (value: string) => void;
     onConfirm?: () => void;
     maxLength?: number;
+    hideDecimal?: boolean;
 }
 
 export function NumberPad({
     value,
     onChange,
     onConfirm,
-    maxLength = 10
+    maxLength = 10,
+    hideDecimal = false
 }: NumberPadProps) {
     const handleInput = useCallback((char: string) => {
+        if (char === '.' && hideDecimal) return;
+
         if (char === '.') {
             // 防止多个小数点
             if (value.includes('.')) return;
@@ -72,6 +76,7 @@ export function NumberPad({
                                 handleClear();
                             }
                         }}
+                        disabled={key === '.' && hideDecimal}
                         className={`
               h-14 rounded-[var(--radius-md)]
               text-xl font-medium
@@ -82,6 +87,7 @@ export function NumberPad({
                                 ? 'bg-[var(--color-bg-card)] text-[var(--color-text-secondary)]'
                                 : 'bg-[var(--color-bg-card)] text-[var(--color-text)] hover:bg-[var(--color-border)]'
                             }
+              ${(key === '.' && hideDecimal) ? 'invisible' : ''}
             `}
                     >
                         {key === 'del' ? <Delete size={24} /> : key}

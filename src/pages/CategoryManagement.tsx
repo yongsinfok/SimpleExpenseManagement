@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowLeft, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { useCategories } from '../hooks/useTransactions';
-import { categoryOperations, type Category, type TransactionType } from '../db/database';
+import { categoryOperations } from '../db/database';
+import type { Category, TransactionType } from '../types';
+import { getIcon } from '../utils/icons';
 
 interface CategoryManagementProps {
     onBack: () => void;
@@ -30,7 +32,7 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
 
     const handleSave = async () => {
         if (!formData.name) {
-            alert('请输入分类名称');
+            toast.error('请输入分类名称');
             return;
         }
 
@@ -38,28 +40,32 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
             if (editingId) {
                 await categoryOperations.update(editingId, formData);
                 setEditingId(null);
+                toast.success('分类更新成功');
             } else {
                 await categoryOperations.add({
                     name: formData.name!,
                     type: activeTab,
                     icon: formData.icon || 'MoreHorizontal',
                     color: formData.color || '#6B7280',
-                    order: categories.length
+                    order: categories.length,
+                    isCustom: true
                 });
                 setIsAdding(false);
+                toast.success('分类添加成功');
             }
             setFormData({ name: '', icon: 'MoreHorizontal', color: '#6B7280' });
         } catch (error: any) {
-            alert(error.message);
+            toast.error(error.message);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('确定要删除这个分类吗？')) {
+        if (window.confirm('确定要删除这个分类吗？')) {
             try {
                 await categoryOperations.delete(id);
+                toast.success('分类已删除');
             } catch (error: any) {
-                alert(error.message);
+                toast.error(error.message);
             }
         }
     };
@@ -140,7 +146,7 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
                                 <label className="block text-xs text-[var(--color-text-muted)] mb-2">选择图标</label>
                                 <div className="grid grid-cols-7 gap-2">
                                     {ICON_LIST.map(iconName => {
-                                        const Icon = (LucideIcons as any)[iconName];
+                                        const Icon = getIcon(iconName);
                                         return (
                                             <button
                                                 key={iconName}
@@ -179,7 +185,7 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
                 {/* Category List */}
                 <div className="grid grid-cols-1 gap-3">
                     {categories.map(category => {
-                        const IconComponent = (LucideIcons as any)[category.icon] || LucideIcons.HelpCircle;
+                        const IconComponent = getIcon(category.icon);
                         return (
                             <div
                                 key={category.id}

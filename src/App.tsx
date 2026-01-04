@@ -4,6 +4,8 @@ import { AddTransaction } from './components/AddTransaction';
 import { HomePage, BillsPage, ChartsPage, ProfilePage } from './pages';
 import { useInitializeData } from './hooks/useTransactions';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { SecurityProvider } from './contexts/SecurityContext';
+import { LockScreen } from './components/LockScreen';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -66,7 +68,9 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col safe-area-inset-top">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col safe-area-inset-top transition-colors duration-200">
+      <LockScreen />
+
       {/* 页面内容 */}
       {renderPage()}
 
@@ -89,10 +93,15 @@ function AppContent() {
   );
 }
 
+import { Toaster } from 'sonner';
+
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <SecurityProvider>
+        <AppContent />
+        <Toaster position="top-center" richColors />
+      </SecurityProvider>
     </ThemeProvider>
   );
 }

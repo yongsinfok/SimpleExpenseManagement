@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ArrowLeft, Plus, Edit2, Trash2, Check, X } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { useAccounts } from '../hooks/useTransactions';
-import { accountOperations, type Account } from '../db/database';
+import { accountOperations } from '../db/database';
+import type { Account } from '../types';
+import { getIcon } from '../utils/icons';
 
 interface AccountManagementProps {
     onBack: () => void;
@@ -23,7 +25,7 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
 
     const handleSave = async () => {
         if (!formData.name) {
-            alert('请输入账户名称');
+            toast.error('请输入账户名称');
             return;
         }
 
@@ -31,6 +33,7 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
             if (editingId) {
                 await accountOperations.update(editingId, formData);
                 setEditingId(null);
+                toast.success('账户更新成功');
             } else {
                 await accountOperations.add({
                     name: formData.name!,
@@ -41,10 +44,11 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
                     order: accounts.length
                 });
                 setIsAdding(false);
+                toast.success('账户添加成功');
             }
             setFormData({ name: '', type: 'cash', initialBalance: 0, icon: 'CreditCard', color: '#3B82F6' });
         } catch (error: any) {
-            alert(error.message);
+            toast.error(error.message);
         }
     };
 
@@ -52,8 +56,9 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
         if (confirm('确定要删除这个账户吗？')) {
             try {
                 await accountOperations.delete(id);
+                toast.success('账户已删除');
             } catch (error: any) {
-                alert(error.message);
+                toast.error(error.message);
             }
         }
     };
@@ -144,7 +149,7 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
                 {/* Account List */}
                 <div className="space-y-3">
                     {accounts.map(account => {
-                        const IconComponent = (LucideIcons as any)[account.icon] || LucideIcons.CreditCard;
+                        const IconComponent = getIcon(account.icon);
                         return (
                             <div
                                 key={account.id}

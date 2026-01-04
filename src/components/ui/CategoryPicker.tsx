@@ -1,4 +1,4 @@
-import * as LucideIcons from 'lucide-react';
+import { getIcon } from '../../utils/icons';
 import type { Category } from '../../types';
 
 interface CategoryPickerProps {
@@ -15,7 +15,7 @@ export function CategoryPicker({
     return (
         <div className="grid grid-cols-4 gap-3 p-4">
             {categories.map((category) => {
-                const IconComponent = (LucideIcons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[category.icon] || LucideIcons.HelpCircle;
+                const IconComponent = getIcon(category.icon);
                 const isSelected = category.id === selectedId;
 
                 return (
@@ -65,7 +65,7 @@ interface CategoryBadgeProps {
 }
 
 export function CategoryBadge({ category, onClick }: CategoryBadgeProps) {
-    const IconComponent = (LucideIcons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[category.icon] || LucideIcons.HelpCircle;
+    const IconComponent = getIcon(category.icon);
 
     return (
         <button

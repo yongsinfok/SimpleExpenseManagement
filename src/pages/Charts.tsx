@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { format, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear, subYears } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear, subYears, parseISO } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Download, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { useTransactions, useCategories, useTransactionSummary } from '../hooks/useTransactions';
+import { getIcon } from '../utils/icons';
 import type { TransactionType } from '../types';
 
 type ViewType = 'month' | 'year';
@@ -29,7 +29,9 @@ export function ChartsPage() {
     const categoryData = useMemo(() => {
         const filtered = transactions.filter(t => t.type === activeType);
         const totals = filtered.reduce((acc, t) => {
-            acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+            if (t.categoryId) {
+                acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
+            }
             return acc;
         }, {} as Record<string, number>);
 
@@ -230,16 +232,16 @@ export function ChartsPage() {
                                             <Tooltip
                                                 contentStyle={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '12px', borderColor: 'var(--color-border)' }}
                                                 itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                                formatter={(value: number) => [`RM${value.toFixed(2)}`, '金额']}
+                                                formatter={(value: any) => [`RM${Number(value).toFixed(2)}`, '金额']}
                                             />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="mt-8 space-y-4">
-                                    {categoryData.map((item) => {
-                                        const Icon = (LucideIcons as any)[item.icon] || LucideIcons.HelpCircle;
+                                    {categoryData.map((item, index) => {
+                                        const Icon = getIcon(item.icon);
                                         return (
-                                            <div key={item.id} className="group">
+                                            <div key={item.id} className="group animate-slide-up" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}>
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.color + '15' }}>
                                                         <Icon size={16} style={{ color: item.color }} />

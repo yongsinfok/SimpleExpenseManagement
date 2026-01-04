@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import { format, startOfMonth } from 'date-fns';
+import { useMemo } from 'react';
+import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, ArrowRight, Wallet } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { Card, CardHeader } from '../components/ui';
+import { Card, CardHeader, EmptyState } from '../components/ui';
+import { getIcon } from '../utils/icons';
 import { useMonthTransactions, useTransactionSummary, useTodayTransactions, useCategories } from '../hooks/useTransactions';
 import { useBudgets } from '../hooks/useBudgets';
 
@@ -31,16 +31,15 @@ export function HomePage({ onViewAllBills }: HomePageProps) {
         }, {} as Record<string, number>);
     }, [monthTransactions]);
 
-    // 获取前2个快到期的预算或最大的预算
     const budgetOverview = useMemo(() => {
         return budgets
             .map(b => {
-                const spent = spendingByCategory[b.categoryId] || 0;
+                const spent = b.categoryId ? (spendingByCategory[b.categoryId] || 0) : 0;
                 return {
                     ...b,
                     spent,
                     percentage: (spent / b.amount) * 100,
-                    category: categoryMap.get(b.categoryId)
+                    category: b.categoryId ? categoryMap.get(b.categoryId) : undefined
                 };
             })
             .sort((a, b) => b.percentage - a.percentage)
@@ -148,22 +147,26 @@ export function HomePage({ onViewAllBills }: HomePageProps) {
                 />
 
                 {recentTransactions.length === 0 ? (
-                    <div className="text-center py-8 text-[var(--color-text-muted)]">
-                        <p>今天还没有记账哦</p>
-                        <p className="text-sm mt-1">点击下方按钮开始记录</p>
-                    </div>
+                    <EmptyState
+                        icon={Wallet}
+                        title="今天还没有记账哦"
+                        description="记录每一笔收支，养成良好的理财习惯"
+                        actionLabel="记一笔"
+                        onAction={() => document.dispatchEvent(new CustomEvent('open-add-transaction'))}
+                    />
                 ) : (
                     <div className="space-y-2">
-                        {recentTransactions.map((transaction) => {
+                        {recentTransactions.map((transaction, index) => {
                             const category = categoryMap.get(transaction.categoryId);
                             const IconComponent = category
-                                ? (LucideIcons as Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>>)[category.icon] || LucideIcons.HelpCircle
-                                : LucideIcons.HelpCircle;
+                                ? getIcon(category.icon)
+                                : getIcon('HelpCircle');
 
                             return (
                                 <div
                                     key={transaction.id}
-                                    className="flex items-center gap-3 p-2 rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] transition-colors"
+                                    className="flex items-center gap-3 p-2 rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] transition-colors animate-slide-up"
+                                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
                                 >
                                     <div
                                         className="w-10 h-10 rounded-full flex items-center justify-center"

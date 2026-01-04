@@ -7,8 +7,8 @@ import {
     accountOperations,
     initializeDefaultData
 } from '../db/database';
-import type { Transaction, Category, Account, TransactionFormData, TransactionType } from '../types';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
+import type { Transaction, Category, TransactionFormData, TransactionType } from '../types';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 // 初始化Hook
 export function useInitializeData() {

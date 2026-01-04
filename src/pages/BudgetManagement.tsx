@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth } from 'date-fns';
-import { ChevronLeft, Plus, Trash2, Wallet, PieChart, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Wallet, PieChart } from 'lucide-react';
+import { EmptyState } from '../components/ui';
 import { useBudgets } from '../hooks/useBudgets';
 import { useCategories, useTransactions } from '../hooks/useTransactions';
-import type { Budget, Category } from '../types';
 
 interface BudgetManagementProps {
     onBack: () => void;
@@ -11,7 +11,7 @@ interface BudgetManagementProps {
 
 export function BudgetManagement({ onBack }: BudgetManagementProps) {
     const currentPeriod = format(new Date(), 'yyyy-MM');
-    const { budgets, setBudget, deleteBudget, isLoading: budgetsLoading } = useBudgets(currentPeriod);
+    const { budgets, setBudget, deleteBudget } = useBudgets(currentPeriod);
     const categories = useCategories('expense');
     const transactions = useTransactions({
         startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -37,8 +37,8 @@ export function BudgetManagement({ onBack }: BudgetManagementProps) {
         await setBudget({
             categoryId: selectedCategoryId,
             amount: parseFloat(amount),
-            period: currentPeriod,
-            type: 'monthly'
+            period: 'monthly',
+            startDate: currentPeriod
         });
 
         setShowAddModal(false);
@@ -49,7 +49,7 @@ export function BudgetManagement({ onBack }: BudgetManagementProps) {
     const budgetList = useMemo(() => {
         return budgets.map(b => {
             const category = categories.find(c => c.id === b.categoryId);
-            const spent = spendingByCategory[b.categoryId] || 0;
+            const spent = b.categoryId ? (spendingByCategory[b.categoryId] || 0) : 0;
             const remaining = b.amount - spent;
             const percentage = Math.min((spent / b.amount) * 100, 100);
 
@@ -116,11 +116,13 @@ export function BudgetManagement({ onBack }: BudgetManagementProps) {
                     </div>
 
                     {budgetList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 bg-[var(--color-bg-card)] rounded-3xl border-2 border-dashed border-[var(--color-border)] opacity-60">
-                            <PieChart size={48} className="text-[var(--color-text-muted)] mb-3" />
-                            <p className="text-sm font-bold text-[var(--color-text-muted)]">尚未设置任何预算</p>
-                            <button onClick={() => setShowAddModal(true)} className="mt-4 text-[var(--color-primary)] text-xs font-black uppercase tracking-widest">立即添加</button>
-                        </div>
+                        <EmptyState
+                            icon={PieChart}
+                            title="尚未设置任何预算"
+                            description="设定预算可以帮助你更好地控制支出"
+                            actionLabel="立即添加"
+                            onAction={() => setShowAddModal(true)}
+                        />
                     ) : (
                         budgetList.map(budget => (
                             <div key={budget.id} className="bg-[var(--color-bg-card)] rounded-2xl p-4 shadow-sm border border-[var(--color-border)]/50">
