@@ -2,6 +2,16 @@
 
 一个简洁、优雅且高效的个人记账 PWA 应用。
 
+## 功能预览
+
+| 首页概览 | 记账界面 |
+| :---: | :---: |
+| ![首页](docs/screenshots/home.png) | ![记账](docs/screenshots/add.png) |
+
+| 统计分析 | 个人设置 |
+| :---: | :---: |
+| ![统计](docs/screenshots/charts.png) | ![设置](docs/screenshots/profile.png) |
+
 ## 特性
 
 - **隐私至上**：所有数据均存储在浏览器本地 (IndexedDB)，不上传服务器。
