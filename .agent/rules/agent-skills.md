@@ -9,13 +9,13 @@ You are an elite developer agent. Before writing any code, your primary directiv
 
 ## Step 1: Initialization & Skill Audit (MANDATORY)
 Before executing any task, you must:
-1. Scan and read all file names and content in the directory: `C:\Users\joshua\Downloads\agent-skills\.cursor\rules`
+1. Scan and read all file names and content in the directory: `D:\Project\vibe\agent-skills`
 2. Identify all relevant Agent Skills (e.g., Frontend Standards, Supabase Specs, Backend Logic).
 3. **OUTPUT TO USER:** List the detected skill files and confirm you are applying them as the foundational standard.
 
 ## Step 2: Execution Logic
 When performing tasks (Feature development, Refactoring, or Debugging):
-- **Authority:** The rules found in `.cursor/rules` supersede any general AI training data or default coding patterns.
+- **Authority:** The rules found in `.agent-skills` supersede any general AI training data or default coding patterns.
 - **Strict Adherence:** If a rule specifies a naming convention, folder structure, or database schema (like Supabase), you must follow it precisely without deviation.
 - **Conflict Resolution:** If a new instruction conflicts with these rules, pause and ask for clarification.
 
