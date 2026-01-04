@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
 import { format, subMonths, startOfMonth, endOfMonth, startOfYear, endOfYear, subYears, parseISO } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Download, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { ChevronLeft, ChevronRight, Download, Calendar, TrendingDown, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTransactions, useCategories, useTransactionSummary } from '../hooks/useTransactions';
 import { getIcon } from '../utils/icons';
+import { Card, Button } from '../components/ui';
+import { cn } from '../utils/cn';
 import type { TransactionType } from '../types';
 
 type ViewType = 'month' | 'year';
@@ -25,7 +28,6 @@ export function ChartsPage() {
 
     const categoryMap = new Map(categories.map(c => [c.id, c]));
 
-    // 按分类汇总
     const categoryData = useMemo(() => {
         const filtered = transactions.filter(t => t.type === activeType);
         const totals = filtered.reduce((acc, t) => {
@@ -52,7 +54,6 @@ export function ChartsPage() {
             .sort((a, b) => b.value - a.value);
     }, [transactions, categoryMap, summary.expense, summary.income, activeType]);
 
-    // 按日期/月份汇总
     const trendData = useMemo(() => {
         if (viewType === 'month') {
             const daily = transactions.reduce((acc, t) => {
@@ -69,7 +70,6 @@ export function ChartsPage() {
             }, {} as Record<string, { date: string; income: number; expense: number }>);
             return Object.values(daily).sort((a, b) => a.date.localeCompare(b.date));
         } else {
-            // 年视图按月汇总
             const monthly = transactions.reduce((acc, t) => {
                 const monthStr = format(new Date(t.date), 'yyyy-MM');
                 if (!acc[monthStr]) {
@@ -116,186 +116,248 @@ export function ChartsPage() {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `账单报表_${format(currentDate, viewType === 'month' ? 'yyyy-MM' : 'yyyy')}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.setAttribute("download", `报表_${format(currentDate, viewType === 'month' ? 'yyyy-MM' : 'yyyy')}.csv`);
         link.click();
-        document.body.removeChild(link);
     };
 
     return (
-        <div className="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4 animate-in fade-in duration-300">
-            {/* 时间视图切换 */}
-            <div className="flex p-1 bg-[var(--color-bg-secondary)] rounded-xl border border-[var(--color-border)]/50">
-                <button
-                    onClick={() => setViewType('month')}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${viewType === 'month' ? 'bg-[var(--color-bg-card)] text-[var(--color-primary)] shadow-sm' : 'text-[var(--color-text-muted)]'}`}
-                >
-                    月视图
-                </button>
-                <button
-                    onClick={() => setViewType('year')}
-                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${viewType === 'year' ? 'bg-[var(--color-bg-card)] text-[var(--color-primary)] shadow-sm' : 'text-[var(--color-text-muted)]'}`}
-                >
-                    年视图
-                </button>
-            </div>
-
-            {/* 时间选择和导出 */}
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 flex items-center justify-between bg-[var(--color-bg-card)] rounded-2xl p-2 shadow-sm border border-[var(--color-border)]/50">
-                    <button onClick={handlePrev} className="p-2 rounded-xl hover:bg-[var(--color-bg-secondary)]"><ChevronLeft size={18} /></button>
-                    <span className="font-extrabold text-[var(--color-text)]">
-                        {format(currentDate, viewType === 'month' ? 'yyyy年M月' : 'yyyy年', { locale: zhCN })}
-                    </span>
-                    <button onClick={handleNext} disabled={currentDate >= new Date()} className="p-2 rounded-xl hover:bg-[var(--color-bg-secondary)] disabled:opacity-20"><ChevronRight size={18} /></button>
-                </div>
-                <button
-                    onClick={exportToCSV}
-                    className="p-3.5 bg-[var(--color-bg-card)] text-[var(--color-primary)] rounded-2xl shadow-sm border border-[var(--color-border)]/50 active:scale-95 transition-all">
-                    <Download size={20} />
-                </button>
-            </div>
-
-            {/* 高级汇总卡片 */}
-            <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[var(--color-bg-card)] rounded-2xl p-4 shadow-sm border border-[var(--color-border)]/50 relative overflow-hidden group">
-                    <div className="absolute -right-2 -top-2 text-[var(--color-expense)]/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TrendingDown size={64} />
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-1 overflow-y-auto pb-28 px-4 pt-6 space-y-6 hide-scrollbar"
+        >
+            {/* Nav Header */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 flex items-center justify-between glass rounded-2xl p-1.5 px-3">
+                    <button onClick={handlePrev} className="p-2.5 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-colors">
+                        <ChevronLeft size={20} strokeWidth={2.5} />
+                    </button>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[10px] font-black text-[var(--color-primary)] uppercase tracking-widest leading-none mb-1">
+                            {viewType === 'month' ? '月度报表' : '年度报表'}
+                        </span>
+                        <span className="text-base font-black text-[var(--color-text)] tracking-tight">
+                            {format(currentDate, viewType === 'month' ? 'yyyy年 M月' : 'yyyy年', { locale: zhCN })}
+                        </span>
                     </div>
-                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">总支出</p>
-                    <p className="text-xl font-black text-[var(--color-expense)]">RM {summary.expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    <button
+                        onClick={handleNext}
+                        disabled={currentDate >= new Date()}
+                        className="p-2.5 rounded-xl hover:bg-[var(--color-bg-secondary)] disabled:opacity-0 transition-opacity"
+                    >
+                        <ChevronRight size={20} strokeWidth={2.5} />
+                    </button>
                 </div>
-                <div className="bg-[var(--color-bg-card)] rounded-2xl p-4 shadow-sm border border-[var(--color-border)]/50 relative overflow-hidden group">
-                    <div className="absolute -right-2 -bottom-2 text-[var(--color-income)]/5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <TrendingUp size={64} />
-                    </div>
-                    <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">总收入</p>
-                    <p className="text-xl font-black text-[var(--color-income)]">RM {summary.income.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+
+                <Button variant="glass" size="md" className="w-12 h-12 p-0 rounded-2xl" onClick={exportToCSV}>
+                    <Download size={20} strokeWidth={2.5} />
+                </Button>
+            </div>
+
+            {/* View Selectors */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="flex p-1 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)]/50">
+                    <button
+                        onClick={() => setViewType('month')}
+                        className={cn(
+                            "flex-1 py-2 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all",
+                            viewType === 'month' ? "bg-[var(--color-bg-card)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)]"
+                        )}
+                    >月</button>
+                    <button
+                        onClick={() => setViewType('year')}
+                        className={cn(
+                            "flex-1 py-2 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all",
+                            viewType === 'year' ? "bg-[var(--color-bg-card)] text-[var(--color-primary)] shadow-sm" : "text-[var(--color-text-muted)]"
+                        )}
+                    >年</button>
+                </div>
+
+                <div className="flex p-1 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)]/50">
+                    <button
+                        onClick={() => setChartType('category')}
+                        className={cn(
+                            "flex-1 flex items-center justify-center py-2 rounded-xl transition-all",
+                            chartType === 'category' ? "bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-sm" : "text-[var(--color-text-muted)]"
+                        )}
+                    >
+                        <PieChartIcon size={16} strokeWidth={2.5} />
+                    </button>
+                    <button
+                        onClick={() => setChartType('trend')}
+                        className={cn(
+                            "flex-1 flex items-center justify-center py-2 rounded-xl transition-all",
+                            chartType === 'trend' ? "bg-[var(--color-bg-card)] text-[var(--color-text)] shadow-sm" : "text-[var(--color-text-muted)]"
+                        )}
+                    >
+                        <BarChart3 size={16} strokeWidth={2.5} />
+                    </button>
                 </div>
             </div>
 
-            {/* 功能切换 */}
-            <div className="flex gap-2">
-                <button
-                    onClick={() => setChartType('category')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${chartType === 'category' ? 'bg-[var(--color-text)] text-[var(--color-bg)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]'}`}
-                >
-                    分类
-                </button>
-                <button
-                    onClick={() => setChartType('trend')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${chartType === 'trend' ? 'bg-[var(--color-text)] text-[var(--color-bg)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]'}`}
-                >
-                    趋势
-                </button>
+            {/* Summaries */}
+            <div className="grid grid-cols-2 gap-4">
+                <Card className="hover:border-[var(--color-expense)] border-transparent" shadow="md">
+                    <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2">统计支出</p>
+                    <p className="text-xl font-black text-[var(--color-expense)] tracking-tighter">
+                        <span className="text-xs opacity-50 mr-1">RM</span>
+                        {summary.expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                </Card>
+                <Card className="hover:border-[var(--color-income)] border-transparent" shadow="md">
+                    <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2">统计收入</p>
+                    <p className="text-xl font-black text-[var(--color-income)] tracking-tighter">
+                        <span className="text-xs opacity-50 mr-1">RM</span>
+                        {summary.income.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </p>
+                </Card>
             </div>
 
-            {/* 图表内容 */}
-            <div className="bg-[var(--color-bg-card)] rounded-3xl p-5 shadow-sm border border-[var(--color-border)]/50 min-h-[400px]">
-                {chartType === 'category' ? (
-                    <>
-                        <div className="flex justify-center gap-4 mb-6">
-                            <button
-                                onClick={() => setActiveType('expense')}
-                                className={`text-xs font-bold pb-1 border-b-2 transition-all ${activeType === 'expense' ? 'border-[var(--color-expense)] text-[var(--color-expense)]' : 'border-transparent text-[var(--color-text-muted)]'}`}
-                            >支出</button>
-                            <button
-                                onClick={() => setActiveType('income')}
-                                className={`text-xs font-bold pb-1 border-b-2 transition-all ${activeType === 'income' ? 'border-[var(--color-income)] text-[var(--color-income)]' : 'border-transparent text-[var(--color-text-muted)]'}`}
-                            >收入</button>
-                        </div>
-                        {categoryData.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-[var(--color-text-muted)] opacity-50">
-                                <Calendar size={48} className="mb-2" />
-                                <p className="text-sm font-medium">暂无{activeType === 'income' ? '收入' : '支出'}记录</p>
+            {/* Main Chart Container */}
+            <Card shadow="premium" padding="lg" className="min-h-[420px] relative overflow-hidden">
+                <AnimatePresence mode="wait">
+                    {chartType === 'category' ? (
+                        <motion.div
+                            key="category"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-6"
+                        >
+                            <div className="flex p-1 bg-[var(--color-bg-secondary)] rounded-xl w-32 mx-auto">
+                                <button
+                                    onClick={() => setActiveType('expense')}
+                                    className={cn(
+                                        "flex-1 py-1 text-[10px] font-bold rounded-lg transition-all",
+                                        activeType === 'expense' ? "bg-[var(--color-expense)] text-white shadow-md shadow-[var(--color-expense)]/20" : "text-[var(--color-text-muted)]"
+                                    )}
+                                >支出</button>
+                                <button
+                                    onClick={() => setActiveType('income')}
+                                    className={cn(
+                                        "flex-1 py-1 text-[10px] font-bold rounded-lg transition-all",
+                                        activeType === 'income' ? "bg-[var(--color-income)] text-white shadow-md shadow-[var(--color-income)]/20" : "text-[var(--color-text-muted)]"
+                                    )}
+                                >收入</button>
                             </div>
-                        ) : (
-                            <>
-                                <div className="h-64">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={categoryData}
-                                                dataKey="value"
-                                                nameKey="name"
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={90}
-                                                paddingAngle={4}
-                                            >
-                                                {categoryData.map((entry) => (
-                                                    <Cell key={entry.id} fill={entry.color} stroke="none" />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '12px', borderColor: 'var(--color-border)' }}
-                                                itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                                formatter={(value: any) => [`RM${Number(value).toFixed(2)}`, '金额']}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+
+                            {categoryData.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-[var(--color-text-muted)] opacity-50">
+                                    <Calendar size={48} strokeWidth={1.5} className="mb-4" />
+                                    <p className="text-sm font-bold">本时段暂无相关记录</p>
                                 </div>
-                                <div className="mt-8 space-y-4">
-                                    {categoryData.map((item, index) => {
-                                        const Icon = getIcon(item.icon);
-                                        return (
-                                            <div key={item.id} className="group animate-slide-up" style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}>
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.color + '15' }}>
-                                                        <Icon size={16} style={{ color: item.color }} />
-                                                    </div>
-                                                    <div className="flex-1 flex items-center justify-between">
-                                                        <span className="text-sm font-bold text-[var(--color-text)]">{item.name}</span>
-                                                        <span className="text-sm font-black text-[var(--color-text)]">RM {item.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full rounded-full transition-all duration-700 ease-out"
-                                                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                                    />
-                                                </div>
-                                                <div className="text-[10px] text-right text-[var(--color-text-muted)] mt-1 font-bold">{item.percentage}%</div>
+                            ) : (
+                                <>
+                                    <div className="h-64 relative">
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <div className="text-center">
+                                                <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1">总额</p>
+                                                <p className="text-xl font-black text-[var(--color-text)] tracking-tighter">
+                                                    RM {(activeType === 'expense' ? summary.expense : summary.income).toLocaleString()}
+                                                </p>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={categoryData}
+                                                    dataKey="value"
+                                                    innerRadius={75}
+                                                    outerRadius={95}
+                                                    paddingAngle={6}
+                                                    stroke="none"
+                                                >
+                                                    {categoryData.map((entry) => (
+                                                        <Cell key={entry.id} fill={entry.color} fillOpacity={0.8} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
+                                                    itemStyle={{ fontSize: '11px', fontWeight: '900' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+
+                                    <div className="space-y-4 pt-4 border-t border-[var(--color-border)]/50">
+                                        {categoryData.map((item, index) => {
+                                            const Icon = getIcon(item.icon);
+                                            return (
+                                                <motion.div
+                                                    key={item.id}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.05 }}
+                                                    className="space-y-2"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 shadow-sm" style={{ backgroundColor: item.color + '15' }}>
+                                                            <Icon size={18} style={{ color: item.color }} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-sm font-bold text-[var(--color-text)] tracking-tight">{item.name}</span>
+                                                                <span className="text-sm font-black text-[var(--color-text)] tracking-tighter">RM {item.value.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="h-2 w-full bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
+                                                                <motion.div
+                                                                    initial={{ width: 0 }}
+                                                                    animate={{ width: `${item.percentage}%` }}
+                                                                    transition={{ duration: 1, delay: 0.2 }}
+                                                                    className="h-full rounded-full"
+                                                                    style={{ backgroundColor: item.color }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-10 text-right">
+                                                            <span className="text-[10px] font-black text-[var(--color-text-muted)] tracking-tighter">{item.percentage}%</span>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="trend"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="h-96 w-full pt-10"
+                        >
+                            {trendData.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] opacity-50">
+                                    <Calendar size={48} strokeWidth={1.5} className="mb-4" />
+                                    <p className="text-sm font-bold">尚无数据趋势</p>
                                 </div>
-                            </>
-                        )}
-                    </>
-                ) : (
-                    <div className="h-80 w-full">
-                        {trendData.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)] opacity-50">
-                                <Calendar size={48} className="mb-2" />
-                                <p className="text-sm font-medium">暂无趋势记录</p>
-                            </div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={trendData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                                    <XAxis
-                                        dataKey="date"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        tick={{ fontSize: 10, fontWeight: 'bold', fill: 'var(--color-text-muted)' }}
-                                        tickFormatter={(val) => viewType === 'month' ? format(parseISO(val), 'd') : format(new Date(val), 'M月')}
-                                    />
-                                    <YAxis hide />
-                                    <Tooltip
-                                        cursor={{ fill: 'var(--color-bg-secondary)', opacity: 0.4 }}
-                                        contentStyle={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)' }}
-                                        labelFormatter={(val) => viewType === 'month' ? format(parseISO(val), 'M月d日') : format(new Date(val), 'yyyy年M月')}
-                                    />
-                                    <Bar dataKey="expense" fill="var(--color-expense)" radius={[4, 4, 0, 0]} barSize={viewType === 'month' ? 8 : 20} />
-                                    <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} barSize={viewType === 'month' ? 8 : 20} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={trendData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 10, fontWeight: '900', fill: 'var(--color-text-muted)' }}
+                                            tickFormatter={(val) => viewType === 'month' ? format(parseISO(val), 'd') : format(new Date(val), 'M月')}
+                                        />
+                                        <YAxis axisLine={false} tickLine={false} tick={false} />
+                                        <Tooltip
+                                            cursor={{ fill: 'var(--color-bg-secondary)', radius: 8 }}
+                                            contentStyle={{ backgroundColor: 'var(--color-bg-card)', borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.1)' }}
+                                        />
+                                        <Bar dataKey="expense" fill="var(--color-expense)" radius={[6, 6, 0, 0]} barSize={viewType === 'month' ? 10 : 24} fillOpacity={0.8} />
+                                        <Bar dataKey="income" fill="var(--color-income)" radius={[6, 6, 0, 0]} barSize={viewType === 'month' ? 10 : 24} fillOpacity={0.8} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </Card>
+        </motion.div>
     );
 }
+

@@ -1,9 +1,10 @@
 import type { HTMLAttributes, ReactNode } from 'react';
+import { cn } from '../../utils/cn';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
     children: ReactNode;
-    padding?: 'none' | 'sm' | 'md' | 'lg';
-    shadow?: boolean;
+    padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+    shadow?: 'none' | 'sm' | 'md' | 'lg' | 'premium';
 }
 
 const paddingStyles = {
@@ -11,24 +12,32 @@ const paddingStyles = {
     sm: 'p-3',
     md: 'p-4',
     lg: 'p-6',
+    xl: 'p-8',
+};
+
+const shadowStyles = {
+    none: '',
+    sm: 'shadow-[var(--shadow-sm)]',
+    md: 'shadow-[var(--shadow-md)]',
+    lg: 'shadow-[var(--shadow-lg)]',
+    premium: 'shadow-premium',
 };
 
 export function Card({
     children,
     padding = 'md',
-    shadow = true,
+    shadow = 'md',
     className = '',
     ...props
 }: CardProps) {
     return (
         <div
-            className={`
-        bg-[var(--color-bg-card)]
-        rounded-[var(--radius-lg)]
-        ${shadow ? 'shadow-[var(--shadow-md)]' : ''}
-        ${paddingStyles[padding]}
-        ${className}
-      `}
+            className={cn(
+                'bg-[var(--color-bg-card)] rounded-[var(--radius-lg)] border border-[var(--color-border)] transition-all duration-300',
+                paddingStyles[padding],
+                shadowStyles[shadow],
+                className
+            )}
             {...props}
         >
             {children}
@@ -40,18 +49,20 @@ interface CardHeaderProps {
     title: string;
     subtitle?: string;
     action?: ReactNode;
+    className?: string;
 }
 
-export function CardHeader({ title, subtitle, action }: CardHeaderProps) {
+export function CardHeader({ title, subtitle, action, className }: CardHeaderProps) {
     return (
-        <div className="flex items-center justify-between mb-3">
+        <div className={cn("flex items-center justify-between mb-4", className)}>
             <div>
-                <h3 className="font-semibold text-[var(--color-text)]">{title}</h3>
+                <h3 className="text-base font-bold text-[var(--color-text)] tracking-tight">{title}</h3>
                 {subtitle && (
-                    <p className="text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
+                    <p className="text-xs font-medium text-[var(--color-text-secondary)] opacity-80">{subtitle}</p>
                 )}
             </div>
-            {action && <div>{action}</div>}
+            {action && <div className="flex-shrink-0">{action}</div>}
         </div>
     );
 }
+

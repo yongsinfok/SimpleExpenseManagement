@@ -1,4 +1,5 @@
 import { Home, List, PieChart, User, Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export type TabId = 'home' | 'bills' | 'add' | 'charts' | 'profile';
 
@@ -18,8 +19,8 @@ const tabs = [
 
 export function TabBar({ activeTab, onTabChange, onAddClick }: TabBarProps) {
     return (
-        <nav className="fixed bottom-0 left-0 right-0 bg-[var(--color-bg-card)] border-t border-[var(--color-border)] safe-area-inset-bottom z-40">
-            <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+        <nav className="fixed bottom-0 left-0 right-0 glass safe-area-bottom z-40 px-2 pb-1 border-t-0 shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center justify-around h-16 max-w-lg mx-auto relative">
                 {tabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -30,12 +31,19 @@ export function TabBar({ activeTab, onTabChange, onAddClick }: TabBarProps) {
                             <button
                                 key={tab.id}
                                 onClick={onAddClick}
-                                className="relative -mt-6"
+                                className="relative -mt-10 z-50 group"
                                 aria-label={tab.label}
                             >
-                                <div className="w-14 h-14 rounded-full bg-[var(--color-primary)] flex items-center justify-center shadow-lg transition-transform active:scale-95">
-                                    <Plus size={28} className="text-white" />
-                                </div>
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(99,102,241,0.6)] group-hover:shadow-[0_12px_24px_-8px_rgba(99,102,241,0.8)] transition-shadow duration-300"
+                                >
+                                    <Plus size={32} className="text-white" strokeWidth={2.5} />
+                                </motion.div>
+                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {tab.label}
+                                </span>
                             </button>
                         );
                     }
@@ -45,17 +53,31 @@ export function TabBar({ activeTab, onTabChange, onAddClick }: TabBarProps) {
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={`
-                flex flex-col items-center justify-center gap-1 py-2 px-4
-                transition-colors
-                ${isActive
-                                    ? 'text-[var(--color-primary)]'
-                                    : 'text-[var(--color-text-muted)]'
-                                }
-              `}
+                                relative flex flex-col items-center justify-center gap-1.5 py-1 px-4 min-w-[64px]
+                                transition-all duration-300
+                                ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}
+                                hover:text-[var(--color-primary-light)]
+                            `}
                             aria-label={tab.label}
                         >
-                            <Icon size={24} />
-                            <span className="text-xs font-medium">{tab.label}</span>
+                            <motion.div
+                                animate={isActive ? { y: -2, scale: 1.1 } : { y: 0, scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                            >
+                                <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                            </motion.div>
+
+                            <span className={`text-[11px] font-bold tracking-tight transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : 'opacity-70 scale-95'}`}>
+                                {tab.label}
+                            </span>
+
+                            {isActive && (
+                                <motion.div
+                                    layoutId="tab-indicator"
+                                    className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)] shadow-[0_0_8px_rgba(99,102,241,0.6)]"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                />
+                            )}
                         </button>
                     );
                 })}

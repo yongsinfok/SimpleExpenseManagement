@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ModalProps {
     isOpen: boolean;
@@ -18,9 +19,6 @@ export function Modal({
     showClose = true,
     fullScreen = false
 }: ModalProps) {
-    const modalRef = useRef<HTMLDivElement>(null);
-
-    // 阻止背景滚动
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -32,69 +30,64 @@ export function Modal({
         };
     }, [isOpen]);
 
-    // ESC关闭
-    useEffect(() => {
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        if (isOpen) {
-            window.addEventListener('keydown', handleEsc);
-        }
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [isOpen, onClose]);
-
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-            {/* 遮罩层 */}
-            <div
-                className="absolute inset-0 bg-black/50 animate-fade-in"
-                onClick={onClose}
-            />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
 
-            {/* 弹窗内容 */}
-            <div
-                ref={modalRef}
-                className={`
-          relative bg-[var(--color-bg-card)] w-full
-          animate-slide-up
-          ${fullScreen
-                        ? 'h-full rounded-none'
-                        : 'max-h-[90vh] rounded-t-[var(--radius-xl)] sm:rounded-[var(--radius-xl)] sm:max-w-lg sm:mx-4'
-                    }
-          safe-area-inset-bottom
-          overflow-hidden flex flex-col
-        `}
-            >
-                {/* 标题栏 */}
-                {(title || showClose) && (
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-                        <h2 className="text-lg font-semibold text-[var(--color-text)]">
-                            {title}
-                        </h2>
-                        {showClose && (
-                            <button
-                                onClick={onClose}
-                                className="p-1 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
-                                aria-label="关闭"
-                            >
-                                <X size={24} className="text-[var(--color-text-secondary)]" />
-                            </button>
+                    {/* Modal Content */}
+                    <motion.div
+                        initial={{ y: '100%', opacity: 0.5 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: '100%', opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className={`
+                            relative bg-[var(--color-bg-card)] w-full
+                            ${fullScreen
+                                ? 'h-full rounded-none'
+                                : 'max-h-[92vh] rounded-t-[2.5rem] sm:rounded-[2rem] sm:max-w-lg sm:mx-4 shadow-2xl'
+                            }
+                            safe-area-inset-bottom
+                            overflow-hidden flex flex-col
+                        `}
+                    >
+                        {/* Header */}
+                        {(title || showClose) && (
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--color-border)]/50">
+                                <h2 className="text-xl font-black text-[var(--color-text)] tracking-tight italic">
+                                    {title}
+                                </h2>
+                                {showClose && (
+                                    <button
+                                        onClick={onClose}
+                                        className="w-10 h-10 flex items-center justify-center rounded-2xl bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all active:scale-90"
+                                        aria-label="关闭"
+                                    >
+                                        <X size={20} strokeWidth={2.5} />
+                                    </button>
+                                )}
+                            </div>
                         )}
-                    </div>
-                )}
 
-                {/* 内容区域 */}
-                <div className="flex-1 overflow-y-auto">
-                    {children}
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto hide-scrollbar">
+                            {children}
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 }
 
-// 底部弹出Sheet
 interface BottomSheetProps {
     isOpen: boolean;
     onClose: () => void;
@@ -119,39 +112,49 @@ export function BottomSheet({
         };
     }, [isOpen]);
 
-    if (!isOpen) return null;
-
     const heightStyles = {
-        auto: 'max-h-[90vh]',
+        auto: 'max-h-[85vh]',
         half: 'h-[50vh]',
         full: 'h-[90vh]'
     };
 
     return (
-        <div className="fixed inset-0 z-50">
-            <div
-                className="absolute inset-0 bg-black/50 animate-fade-in"
-                onClick={onClose}
-            />
-            <div
-                className={`
-          absolute bottom-0 left-0 right-0
-          bg-[var(--color-bg-card)]
-          rounded-t-[var(--radius-xl)]
-          animate-slide-up
-          safe-area-inset-bottom
-          overflow-hidden flex flex-col
-          ${heightStyles[height]}
-        `}
-            >
-                {/* 拖拽条 */}
-                <div className="flex justify-center py-2">
-                    <div className="w-10 h-1 bg-[var(--color-border)] rounded-full" />
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+                        className={`
+                            absolute bottom-0 left-0 right-0
+                            bg-[var(--color-bg-card)]
+                            rounded-t-[2.5rem]
+                            safe-area-inset-bottom
+                            overflow-hidden flex flex-col
+                            shadow-2xl shadow-black/20
+                            ${heightStyles[height]}
+                        `}
+                    >
+                        {/* Drag Handle */}
+                        <div className="flex justify-center py-4">
+                            <div className="w-12 h-1.5 bg-[var(--color-border)] rounded-full opacity-40" />
+                        </div>
+                        <div className="flex-1 overflow-y-auto hide-scrollbar">
+                            {children}
+                        </div>
+                    </motion.div>
                 </div>
-                <div className="flex-1 overflow-y-auto">
-                    {children}
-                </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 }
+
