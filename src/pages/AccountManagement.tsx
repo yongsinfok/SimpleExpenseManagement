@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Edit2, Trash2, Check, X, CreditCard, Wallet, Banknote } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Check, Banknote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAccounts } from '../hooks/useTransactions';
 import { accountOperations } from '../db/database';
 import type { Account } from '../types';
 import { getIcon } from '../utils/icons';
 import { Card, Button } from '../components/ui';
-import { cn } from '../utils/cn';
 
 interface AccountManagementProps {
     onBack: () => void;

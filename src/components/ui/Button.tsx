@@ -1,15 +1,16 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
-import { motion } from 'framer-motion';
+import { forwardRef, type ReactNode } from 'react';
+import { motion, type HTMLMotionProps } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'glass';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends HTMLMotionProps<"button"> {
     variant?: ButtonVariant;
     size?: ButtonSize;
     fullWidth?: boolean;
     loading?: boolean;
+    children?: ReactNode;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {

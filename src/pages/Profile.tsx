@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { CreditCard, PieChart, Download, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock, LogOut } from 'lucide-react';
+import { CreditCard, PieChart, Download, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Modal, NumberPad, Card, Button } from '../components/ui';
+import { Modal, NumberPad, Card } from '../components/ui';
 import { db } from '../db/database';
 import { AccountManagement } from './AccountManagement';
 import { CategoryManagement } from './CategoryManagement';

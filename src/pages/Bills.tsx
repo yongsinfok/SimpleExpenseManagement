@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfToday, subMonths, isWithinInterval } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Search, Filter, Trash2, Calendar, LayoutGrid, ChevronRight, SlidersHorizontal, ArrowLeftRight } from 'lucide-react';
+import { Search, Trash2, Calendar, SlidersHorizontal, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { EmptyState, Card } from '../components/ui';
+import { Card } from '../components/ui';
 import { useTransactions, useCategories, useDeleteTransaction } from '../hooks/useTransactions';
 import { getIcon } from '../utils/icons';
 import { cn } from '../utils/cn';

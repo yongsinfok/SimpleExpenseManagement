@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Edit2, Trash2, Check, X, Layers } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Check, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCategories } from '../hooks/useTransactions';
 import { categoryOperations } from '../db/database';

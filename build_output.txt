@@ -1,0 +1,29 @@
+
+> jijizhang@0.0.0 build
+> tsc -b && vite build
+
+src/components/AddTransaction.tsx(3,63): error TS6133: 'ArrowRight' is declared but its value is never read.
+src/components/ui/Button.tsx(41,14): error TS2322: Type '{ children: (Element | ReactNode)[]; form?: string | undefined; formAction?: string | ((formData: FormData) => void | Promise<void>) | undefined; ... 287 more ...; className: string; }' is not assignable to type 'Omit<HTMLMotionProps<"button">, "ref">'.
+  Types of property 'onDrag' are incompatible.
+    Type 'DragEventHandler<HTMLButtonElement> | undefined' is not assignable to type '((event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void) | undefined'.
+      Type 'DragEventHandler<HTMLButtonElement>' is not assignable to type '(event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void'.
+        Types of parameters 'event' and 'event' are incompatible.
+          Type 'MouseEvent | TouchEvent | PointerEvent' is not assignable to type 'DragEvent<HTMLButtonElement>'.
+            Type 'MouseEvent' is missing the following properties from type 'DragEvent<HTMLButtonElement>': dataTransfer, nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+src/pages/AccountManagement.tsx(3,49): error TS6133: 'X' is declared but its value is never read.
+src/pages/AccountManagement.tsx(3,52): error TS6133: 'CreditCard' is declared but its value is never read.
+src/pages/AccountManagement.tsx(3,64): error TS6133: 'Wallet' is declared but its value is never read.
+src/pages/AccountManagement.tsx(10,1): error TS6133: 'cn' is declared but its value is never read.
+src/pages/Bills.tsx(4,18): error TS6133: 'Filter' is declared but its value is never read.
+src/pages/Bills.tsx(4,44): error TS6133: 'LayoutGrid' is declared but its value is never read.
+src/pages/Bills.tsx(4,56): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/pages/Bills.tsx(7,10): error TS6133: 'EmptyState' is declared but its value is never read.
+src/pages/BudgetManagement.tsx(3,37): error TS6133: 'Wallet' is declared but its value is never read.
+src/pages/BudgetManagement.tsx(3,45): error TS6133: 'PieChart' is declared but its value is never read.
+src/pages/CategoryManagement.tsx(3,49): error TS6133: 'X' is declared but its value is never read.
+src/pages/Charts.tsx(4,57): error TS6133: 'TrendingDown' is declared but its value is never read.
+src/pages/Charts.tsx(4,71): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/pages/Charts.tsx(5,90): error TS6133: 'AreaChart' is declared but its value is never read.
+src/pages/Charts.tsx(5,101): error TS6133: 'Area' is declared but its value is never read.
+src/pages/Home.tsx(5,18): error TS6133: 'AnimatePresence' is declared but its value is never read.
+src/pages/Home.tsx(6,28): error TS6133: 'EmptyState' is declared but its value is never read.

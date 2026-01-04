@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, ArrowRight, Wallet, ArrowUpRight, ArrowDownLeft, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardHeader, EmptyState } from '../components/ui';
+import { motion } from 'framer-motion';
+import { Card, CardHeader } from '../components/ui';
 import { getIcon } from '../utils/icons';
 import { useMonthTransactions, useTransactionSummary, useTodayTransactions, useCategories } from '../hooks/useTransactions';
 import { useBudgets } from '../hooks/useBudgets';
@@ -66,7 +66,7 @@ export function Home({ onViewAllBills }: HomePageProps) {
             opacity: 1,
             y: 0,
             scale: 1,
-            transition: { type: 'spring', damping: 25, stiffness: 120 }
+            transition: { type: 'spring' as const, damping: 25, stiffness: 120 }
         }
     };
 

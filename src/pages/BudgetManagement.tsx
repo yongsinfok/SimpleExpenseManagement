@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth } from 'date-fns';
-import { ChevronLeft, Plus, Trash2, Wallet, PieChart, ArrowLeft, Target, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, ArrowLeft, Target, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EmptyState, Card, Button, Modal } from '../components/ui';
 import { useBudgets } from '../hooks/useBudgets';

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Calendar, StickyNote, ChevronDown, Check, ArrowLeft, ArrowRight, Wallet } from 'lucide-react';
+import { Calendar, StickyNote, ChevronDown, Check, ArrowLeft, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal, NumberPad, AmountDisplay, CategoryPicker, Button, Card } from './ui';
 import { useCategories, useAccounts, useAddTransaction } from '../hooks/useTransactions';
