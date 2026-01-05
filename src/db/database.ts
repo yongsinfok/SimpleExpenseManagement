@@ -64,45 +64,55 @@ export function generateId(): string {
 }
 
 // 正在初始化的标记
+const INIT_KEY = 'simple_expense_init_done';
 let isInitializing = false;
 
-// 初始化默认数据
 export async function initializeDefaultData(): Promise<void> {
     if (isInitializing) return;
     isInitializing = true;
 
     try {
-        // 获取现有数据
-        const existingCategories = await db.categories.toArray();
-        const existingAccounts = await db.accounts.toArray();
-
-        const existingCategoryIds = new Set(existingCategories.map(c => c.id));
-        const existingAccountIds = new Set(existingAccounts.map(a => a.id));
-
-        // 找出缺失的预设分类
-        const allDefaultCategories = [...defaultExpenseCategories, ...defaultIncomeCategories];
-        const categoriesToAdd = allDefaultCategories.filter(c => !existingCategoryIds.has(c.id));
-
-        // 找出缺失的预设账户
-        const accountsToAdd = defaultAccounts.filter(a => !existingAccountIds.has(a.id));
-
-        // 仅添加缺失的数据，不覆盖现有数据（特别是余额）
-        if (categoriesToAdd.length > 0) {
-            await db.categories.bulkAdd(categoriesToAdd);
+        // 1. 如果已有初始化标记，直接返回
+        if (localStorage.getItem(INIT_KEY)) {
+            return;
         }
 
-        if (accountsToAdd.length > 0) {
-            await db.accounts.bulkAdd(accountsToAdd);
-        }
+        // 2. 检查数据库是否已有数据（针对旧用户）
+        const hasAccounts = (await db.accounts.count()) > 0;
+        const hasCategories = (await db.categories.count()) > 0;
 
-        // 检查设置中的默认账户是否依然有效
-        const settings = getSettings();
-        const currentAccounts = await db.accounts.toArray();
-        if (!settings.defaultAccountId || !currentAccounts.find(a => a.id === settings.defaultAccountId)) {
-            if (currentAccounts.length > 0) {
-                saveSettings({ ...settings, defaultAccountId: currentAccounts[0].id });
+        if (hasAccounts || hasCategories) {
+            // 如果已有数据，标记为已初始化，不再尝试恢复默认数据
+            localStorage.setItem(INIT_KEY, 'true');
+
+            // 确保 defaultAccountId 有效
+            const settings = getSettings();
+            const currentAccounts = await db.accounts.toArray();
+            if (!settings.defaultAccountId || !currentAccounts.find(a => a.id === settings.defaultAccountId)) {
+                if (currentAccounts.length > 0) {
+                    saveSettings({ ...settings, defaultAccountId: currentAccounts[0].id });
+                }
             }
+            return;
         }
+
+        // 3. 全新初始化
+        // 添加预设分类
+        const allDefaultCategories = [...defaultExpenseCategories, ...defaultIncomeCategories];
+        await db.categories.bulkAdd(allDefaultCategories);
+
+        // 添加预设账户
+        await db.accounts.bulkAdd(defaultAccounts);
+
+        // 设置默认账户
+        const settings = getSettings();
+        if (defaultAccounts.length > 0) {
+            saveSettings({ ...settings, defaultAccountId: defaultAccounts[0].id });
+        }
+
+        // 标记完成
+        localStorage.setItem(INIT_KEY, 'true');
+
     } catch (error) {
         console.error('Failed to initialize default data:', error);
     } finally {
