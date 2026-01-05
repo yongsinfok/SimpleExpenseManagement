@@ -11,9 +11,10 @@ interface AddTransactionProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    defaultDate?: string;
 }
 
-export function AddTransaction({ isOpen, onClose, onSuccess }: AddTransactionProps) {
+export function AddTransaction({ isOpen, onClose, onSuccess, defaultDate }: AddTransactionProps) {
     const [type, setType] = useState<TransactionType>('expense');
     const [amount, setAmount] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -37,10 +38,10 @@ export function AddTransaction({ isOpen, onClose, onSuccess }: AddTransactionPro
             setAmount('');
             setSelectedCategory(null);
             setNote('');
-            setDate(format(new Date(), 'yyyy-MM-dd'));
+            setDate(defaultDate || format(new Date(), 'yyyy-MM-dd'));
             setStep('amount');
         }
-    }, [isOpen]);
+    }, [isOpen, defaultDate]);
 
     useEffect(() => {
         setSelectedCategory(null);

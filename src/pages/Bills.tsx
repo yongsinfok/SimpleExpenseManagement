@@ -501,6 +501,7 @@ export function BillsPage() {
                 onSuccess={() => {
                     toast.success('交易已添加');
                 }}
+                defaultDate={prefilledDate}
             />
 
             {/* 编辑交易弹窗 */}
@@ -549,7 +550,7 @@ function TransactionItem({
     onEdit,
 }: TransactionItemProps) {
     const IconComponent = category ? getIcon(category.icon) : getIcon('HelpCircle');
-    const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+    const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     const handleTouchStart = () => {
         const timer = setTimeout(() => {
