@@ -207,7 +207,7 @@ export function AccountManagement({ onBack }: AccountManagementProps) {
                                                     <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.1em] opacity-60">
                                                         Opening: RM{account.initialBalance.toFixed(2)}
                                                     </p>
-                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                                    <div className="flex gap-1 transition-all">
                                                         <button
                                                             onClick={() => handleEdit(account)}
                                                             className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-all"
