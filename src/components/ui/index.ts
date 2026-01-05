@@ -4,4 +4,7 @@ export { Modal, BottomSheet } from './Modal';
 export { NumberPad, AmountDisplay } from './NumberPad';
 export { CategoryPicker, CategoryBadge } from './CategoryPicker';
 export { EmptyState } from './EmptyState';
+export { BulkActionBar } from './BulkActionBar';
+export { FilterPresets } from './FilterPresets';
+export { CalendarView } from './CalendarView';
 export * from './Tabs';
