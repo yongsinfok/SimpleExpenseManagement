@@ -123,7 +123,7 @@ export function AddTransaction({ isOpen, onClose, onSuccess, defaultDate }: AddT
                     {step === 'amount' && (
                         <div className="p-6 space-y-6">
                             {/* Type Switcher */}
-                            <div className="flex p-1.5 bg-[var(--color-bg-secondary)] rounded-[1.5rem] border border-[var(--color-border)]/50">
+                            <div className="flex p-1.5 bg-[var(--color-bg-secondary)] rounded-[1.5rem] border border-[var(--color-border)]/50" role="radiogroup" aria-label="交易类型">
                                 <button
                                     onClick={() => setType('expense')}
                                     className={cn(
@@ -132,6 +132,8 @@ export function AddTransaction({ isOpen, onClose, onSuccess, defaultDate }: AddT
                                             ? "bg-[var(--color-expense)] text-white shadow-lg shadow-red-500/20"
                                             : "text-[var(--color-text-secondary)] opacity-50"
                                     )}
+                                    aria-pressed={type === 'expense'}
+                                    aria-label="支出类型"
                                 >
                                     <span>支出</span>
                                 </button>
@@ -143,6 +145,8 @@ export function AddTransaction({ isOpen, onClose, onSuccess, defaultDate }: AddT
                                             ? "bg-[var(--color-income)] text-white shadow-lg shadow-emerald-500/20"
                                             : "text-[var(--color-text-secondary)] opacity-50"
                                     )}
+                                    aria-pressed={type === 'income'}
+                                    aria-label="收入类型"
                                 >
                                     <span>收入</span>
                                 </button>

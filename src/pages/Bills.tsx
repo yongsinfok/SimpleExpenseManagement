@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
 import { format, parseISO, isWithinInterval } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Search, Trash2, Calendar, SlidersHorizontal, ArrowLeftRight, List, CalendarDays, X, Edit2, Check, CheckSquare, Square } from 'lucide-react';
+import { Search, Trash2, Calendar, SlidersHorizontal, ArrowLeftRight, List, CalendarDays, X, Edit2, Check, CheckSquare, Square, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Card, BulkActionBar, FilterPresets, CalendarView, EmptyState, Button } from '../components/ui';
-import { useTransactions, useCategories, useDeleteTransaction, useAccounts } from '../hooks/useTransactions';
+import { useTransactions, useCategories, useDeleteTransaction, useAccounts, useAddTransaction } from '../hooks/useTransactions';
 import { useBulkDeleteTransactions, useUpdateTransaction } from '../hooks/useCalendar';
 import { getIcon } from '../utils/icons';
 import { cn } from '../utils/cn';
@@ -48,6 +48,7 @@ export function BillsPage() {
     const categories = useCategories();
     const accounts = useAccounts();
     const { deleteTransaction } = useDeleteTransaction();
+    const { addTransaction } = useAddTransaction();
     const { bulkDelete, isLoading: isBulkDeleting } = useBulkDeleteTransactions();
     const { updateTransaction } = useUpdateTransaction();
 
@@ -209,6 +210,22 @@ export function BillsPage() {
     const handleEdit = (transaction: Transaction) => {
         setEditingTransaction(transaction);
         setShowEditModal(true);
+    };
+
+    const handleDuplicate = async (transaction: Transaction) => {
+        try {
+            await addTransaction({
+                type: transaction.type,
+                amount: transaction.amount,
+                categoryId: transaction.categoryId,
+                accountId: transaction.accountId,
+                date: transaction.date,
+                note: transaction.note ? `${transaction.note} (副本)` : ''
+            });
+            toast.success('交易已复制');
+        } catch (error) {
+            toast.error('复制失败');
+        }
     };
 
     // ===== 日历快速添加 =====
@@ -469,6 +486,7 @@ export function BillsPage() {
                                                     onToggleSelect={handleToggleSelect}
                                                     onDelete={handleDelete}
                                                     onEdit={handleEdit}
+                                                onDuplicate={handleDuplicate}
                                                 />
                                             ))}
                                         </div>
@@ -536,6 +554,7 @@ interface TransactionItemProps {
     onToggleSelect: (id: string) => void;
     onDelete: (id: string) => void;
     onEdit: (transaction: Transaction) => void;
+    onDuplicate: (transaction: Transaction) => void;
 }
 
 function TransactionItem({
@@ -548,6 +567,7 @@ function TransactionItem({
     onToggleSelect,
     onDelete,
     onEdit,
+    onDuplicate,
 }: TransactionItemProps) {
     const IconComponent = category ? getIcon(category.icon) : getIcon('HelpCircle');
     const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -646,6 +666,12 @@ function TransactionItem({
                             className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-all active:scale-90"
                         >
                             <Edit2 size={16} strokeWidth={3} />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDuplicate(transaction); }}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-all active:scale-90"
+                        >
+                            <Copy size={16} strokeWidth={3} />
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); onDelete(transaction.id); }}

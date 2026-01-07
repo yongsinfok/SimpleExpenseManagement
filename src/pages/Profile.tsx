@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CreditCard, PieChart, Download, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { CreditCard, PieChart, Download, Upload, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
@@ -32,11 +32,13 @@ export function ProfilePage() {
             const transactions = await db.transactions.toArray();
             const categories = await db.categories.toArray();
             const accountsData = await db.accounts.toArray();
+            const budgets = await db.budgets.toArray();
 
             const backup = {
                 transactions,
                 categories,
                 accounts: accountsData,
+                budgets,
                 exportDate: new Date().toISOString()
             };
 
@@ -50,6 +52,58 @@ export function ProfilePage() {
             toast.success('数据导出成功！建议妥善保管。');
         } catch (error) {
             toast.error('导出失败');
+        }
+    };
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImportData = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const backup = JSON.parse(text);
+
+            // Validate backup structure
+            if (!backup.transactions || !backup.categories || !backup.accounts) {
+                toast.error('备份文件格式不正确');
+                return;
+            }
+
+            if (!confirm('导入数据将会覆盖现有数据，确定要继续吗？')) {
+                return;
+            }
+
+            // Clear existing data
+            await Promise.all([
+                db.transactions.clear(),
+                db.categories.clear(),
+                db.accounts.clear(),
+                db.budgets.clear()
+            ]);
+
+            // Import data
+            await db.transactions.bulkAdd(backup.transactions);
+            await db.categories.bulkAdd(backup.categories);
+            await db.accounts.bulkAdd(backup.accounts);
+            if (backup.budgets) {
+                await db.budgets.bulkAdd(backup.budgets);
+            }
+
+            toast.success('数据导入成功！');
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (error) {
+            toast.error('导入失败：文件格式不正确');
+        } finally {
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -238,6 +292,7 @@ export function ProfilePage() {
                         {[
                             { icon: Lock, label: '应用锁设置', desc: hasPin ? '已通过 PIN 码保护' : '未开启锁屏验证', onClick: handlePinAction },
                             { icon: Download, label: '导出备份', desc: '导出全量 JSON 备份数据', onClick: handleExportData },
+                            { icon: Upload, label: '导入备份', desc: '从 JSON 文件恢复数据', onClick: handleImportData },
                             { icon: Shield, label: '抹除所有数据', desc: '立即永久清除本地所有数据', onClick: handleClearData, danger: true },
                         ].map((item) => (
                             <button
@@ -314,6 +369,13 @@ export function ProfilePage() {
                     </Modal>
                 )}
             </AnimatePresence>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileChange}
+                    className="hidden"
+                />
         </motion.div>
     );
 }

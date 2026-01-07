@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, Edit2, Trash2, Check, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCategories } from '../hooks/useTransactions';
+import { useCategories, useTransactions } from '../hooks/useTransactions';
 import { categoryOperations } from '../db/database';
 import type { Category, TransactionType } from '../types';
 import { getIcon } from '../utils/icons';
@@ -22,7 +22,21 @@ const ICON_LIST = [
 export function CategoryManagement({ onBack }: CategoryManagementProps) {
     const [activeTab, setActiveTab] = useState<TransactionType>('expense');
     const categories = useCategories(activeTab);
+    const transactions = useTransactions({ type: activeTab });
     const [isAdding, setIsAdding] = useState(false);
+
+    // Calculate usage statistics for each category
+    const categoryUsage = categories.map(category => {
+        const usageCount = transactions.filter(t => t.categoryId === category.id).length;
+        const totalAmount = transactions
+            .filter(t => t.categoryId === category.id)
+            .reduce((sum, t) => sum + t.amount, 0);
+        return {
+            ...category,
+            usageCount,
+            totalAmount
+        };
+    }).sort((a, b) => b.usageCount - a.usageCount);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<Category>>({
         name: '',
@@ -222,7 +236,7 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
                 {/* Category List */}
                 <div className="space-y-3 pb-20">
                     <AnimatePresence mode="popLayout">
-                        {categories.map((category, index) => {
+                        {categoryUsage.map((category, index) => {
                             const IconComponent = getIcon(category.icon);
                             return (
                                 <motion.div
@@ -246,9 +260,16 @@ export function CategoryManagement({ onBack }: CategoryManagementProps) {
                                                     <span className="text-[8px] font-black bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] px-1.5 py-0.5 rounded-full uppercase tracking-widest opacity-60">System</span>
                                                 )}
                                             </div>
-                                            <p className="text-[10px] font-bold text-[var(--color-text-muted)] opacity-40 uppercase tracking-widest">
-                                                {category.type === 'expense' ? 'Debit Structure' : 'Credit Structure'}
-                                            </p>
+                                            <div className="flex items-center gap-3">
+                                                <p className="text-[10px] font-bold text-[var(--color-text-muted)] opacity-40 uppercase tracking-widest">
+                                                    {category.type === 'expense' ? 'Debit Structure' : 'Credit Structure'}
+                                                </p>
+                                                {category.usageCount > 0 && (
+                                                    <span className="text-[9px] font-black bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                        {category.usageCount} 笔
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         {category.isCustom && (
                                             <div className="flex gap-1 opacity-10 sm:opacity-0 group-hover:opacity-100 transition-all">
