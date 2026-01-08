@@ -3,6 +3,8 @@ import { TabBar, type TabId } from './components/layout';
 import { AddTransaction } from './components/AddTransaction';
 import { HomePage, BillsPage, ChartsPage, SavingsGoalsPage, ProfilePage } from './pages';
 import { useInitializeData } from './hooks/useTransactions';
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SecurityProvider } from './contexts/SecurityContext';
 import { LockScreen } from './components/LockScreen';
@@ -11,6 +13,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const { isInitialized, error } = useInitializeData();
+  const { isUpdateAvailable, updateApp } = useServiceWorkerUpdate();
 
   const handleTabChange = (tab: TabId) => {
     if (tab !== 'add') {
@@ -98,6 +101,9 @@ function AppContent() {
           // 记账成功后可以添加一些反馈
         }}
       />
+
+      {/* 更新提示 */}
+      {isUpdateAvailable && <UpdatePrompt onUpdate={updateApp} />}
     </div>
   );
 }

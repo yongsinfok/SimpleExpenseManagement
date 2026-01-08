@@ -41,6 +41,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // 立即激活新的 Service Worker，不等待所有标签页关闭
+        skipWaiting: true,
+        // Service Worker 立即控制所有客户端
+        clientsClaim: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
