@@ -4,9 +4,9 @@
 
 ## 功能预览
 
-| 首页概览 | 记账界面 |
-| :---: | :---: |
-| ![首页](docs/screenshots/home.png) | ![记账](docs/screenshots/add.png) |
+| 首页概览 | 账单列表 | 记账界面 |
+| :---: | :---: | :---: |
+| ![首页](docs/screenshots/home.png) | ![账单](docs/screenshots/bills.png) | ![记账](docs/screenshots/add.png) |
 
 | 统计分析 | 个人设置 |
 | :---: | :---: |

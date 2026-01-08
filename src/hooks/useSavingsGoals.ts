@@ -224,9 +224,44 @@ export function useGoalPrediction(goal: SavingsGoal): GoalPrediction {
 
 // 应用启动时自动更新进度
 export function useSavingsGoalsAutoUpdate() {
-    const { updateProgress } = useUpdateSavingsProgress();
-
     useEffect(() => {
+        // 直接在 effect 中执行更新逻辑，避免依赖外部函数
+        const updateProgress = async () => {
+            try {
+                const settings = getSettings();
+                const today = format(new Date(), 'yyyy-MM-dd');
+                const lastUpdate = settings.savingsGoalsLastUpdate;
+
+                // 如果今天已经更新过，跳过
+                if (lastUpdate === today) {
+                    return;
+                }
+
+                const goals = await savingsGoalOperations.getActive();
+                const allTransactions = await db.transactions.toArray();
+
+                for (const goal of goals) {
+                    let netSavings = 0;
+                    for (const t of allTransactions) {
+                        if (t.date >= goal.startDate) {
+                            if (t.type === 'income') {
+                                netSavings += t.amount;
+                            } else {
+                                netSavings -= t.amount;
+                            }
+                        }
+                    }
+
+                    await savingsGoalOperations.updateProgress(goal.id, netSavings);
+                }
+
+                // 更新最后更新时间
+                saveSettings({ ...settings, savingsGoalsLastUpdate: today });
+            } catch (error) {
+                console.error('Failed to update savings progress:', error);
+            }
+        };
+
         updateProgress();
-    }, [updateProgress]);
+    }, []); // 空依赖数组，只在组件挂载时执行一次
 }
