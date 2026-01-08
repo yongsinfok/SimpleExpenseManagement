@@ -7,6 +7,7 @@ import { Card, CardHeader } from '../components/ui';
 import { getIcon } from '../utils/icons';
 import { useMonthTransactions, useTransactionSummary, useTodayTransactions, useCategories } from '../hooks/useTransactions';
 import { useBudgets } from '../hooks/useBudgets';
+import { useActiveSavingsGoals, useSavingsGoalsAutoUpdate } from '../hooks/useSavingsGoals';
 import { cn } from '../utils/cn';
 
 interface HomePageProps {
@@ -20,6 +21,11 @@ export function Home({ onViewAllBills }: HomePageProps) {
     const todaySummary = useTransactionSummary(todayTransactions);
     const categories = useCategories();
     const { budgets } = useBudgets(format(new Date(), 'yyyy-MM'));
+
+    // Auto-update savings goals progress
+    useSavingsGoalsAutoUpdate();
+    const activeGoals = useActiveSavingsGoals();
+    const topGoals = activeGoals.slice(0, 2);
 
     const categoryMap = new Map(categories.map(c => [c.id, c]));
 
@@ -169,6 +175,61 @@ export function Home({ onViewAllBills }: HomePageProps) {
                     </div>
                 </Card>
             </motion.div>
+
+            {/* Savings Goals Preview */}
+            {topGoals.length > 0 && (
+                <motion.div variants={itemVariants}>
+                    <Card shadow="premium" padding="lg" className="border-[var(--color-border)]/40">
+                        <CardHeader
+                            title={<span className="font-black italic tracking-tighter uppercase text-sm">储蓄目标</span>}
+                            subtitle={<span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] opacity-60">{activeGoals.length} 个进行中的目标</span>}
+                        />
+                        <div className="mt-4 space-y-4">
+                            {topGoals.map(goal => {
+                                const IconComponent = getIcon(goal.icon);
+                                const progress = (goal.currentAmount / goal.targetAmount) * 100;
+                                return (
+                                    <div key={goal.id} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--color-bg-secondary)]/30 hover:bg-[var(--color-bg-secondary)] transition-all">
+                                        <div
+                                            className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                                            style={{ backgroundColor: goal.color + '15' }}
+                                        >
+                                            <IconComponent size={24} style={{ color: goal.color }} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-black text-[var(--color-text)] tracking-tight uppercase truncate">{goal.name}</span>
+                                                <span className="text-sm font-black text-[var(--color-primary)] tracking-tighter">{progress.toFixed(0)}%</span>
+                                            </div>
+                                            <div className="h-2 w-full bg-[var(--color-bg)] rounded-full overflow-hidden">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${Math.min(progress, 100)}%` }}
+                                                    transition={{ duration: 1, delay: 0.2 }}
+                                                    className="h-full rounded-full"
+                                                    style={{ backgroundColor: goal.color }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between mt-1">
+                                                <span className="text-[10px] font-bold text-[var(--color-text-secondary)]">RM {goal.currentAmount.toLocaleString()}</span>
+                                                <span className="text-[10px] font-bold text-[var(--color-text-muted)]">RM {goal.targetAmount.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {activeGoals.length > 2 && (
+                                <button
+                                    onClick={() => document.dispatchEvent(new CustomEvent('navigate-to-savings'))}
+                                    className="w-full py-3 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[var(--color-primary)] hover:text-white transition-all"
+                                >
+                                    查看全部 {activeGoals.length} 个目标 <ArrowRight size={12} strokeWidth={3} />
+                                </button>
+                            )}
+                        </div>
+                    </Card>
+                </motion.div>
+            )}
 
             {/* Quick Metrics Grid */}
             <motion.div variants={itemVariants} className="grid grid-cols-2 gap-5">

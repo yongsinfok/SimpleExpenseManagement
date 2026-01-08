@@ -1,7 +1,7 @@
-import { Home, List, PieChart, User, Plus } from 'lucide-react';
+import { Home, List, PieChart, User, Plus, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export type TabId = 'home' | 'bills' | 'add' | 'charts' | 'profile';
+export type TabId = 'home' | 'bills' | 'add' | 'charts' | 'savings' | 'profile';
 
 interface TabBarProps {
     activeTab: TabId;
@@ -14,6 +14,7 @@ const tabs = [
     { id: 'bills' as const, label: '账单', icon: List },
     { id: 'add' as const, label: '记账', icon: Plus },
     { id: 'charts' as const, label: '图表', icon: PieChart },
+    { id: 'savings' as const, label: '目标', icon: Target },
     { id: 'profile' as const, label: '我的', icon: User },
 ];
 

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Transaction, Category, Account, Budget, Settings } from '../types';
+import type { Transaction, Category, Account, Budget, Settings, SavingsGoal } from '../types';
 
 // 定义数据库类
 class AccountingDatabase extends Dexie {
@@ -7,6 +7,7 @@ class AccountingDatabase extends Dexie {
     categories!: EntityTable<Category, 'id'>;
     accounts!: EntityTable<Account, 'id'>;
     budgets!: EntityTable<Budget, 'id'>;
+    savingsGoals!: EntityTable<SavingsGoal, 'id'>;
 
     constructor() {
         super('AccountingDB');
@@ -16,6 +17,14 @@ class AccountingDatabase extends Dexie {
             categories: 'id, type, order',
             accounts: 'id, type, order',
             budgets: 'id, categoryId, period'
+        });
+
+        this.version(2).stores({
+            transactions: 'id, type, categoryId, accountId, date, createdAt',
+            categories: 'id, type, order',
+            accounts: 'id, type, order',
+            budgets: 'id, categoryId, period',
+            savingsGoals: 'id, achieved, createdAt'
         });
     }
 }
@@ -319,5 +328,69 @@ export const budgetOperations = {
         } else {
             return await this.add(budget);
         }
+    }
+};
+
+// 储蓄目标操作
+export const savingsGoalOperations = {
+    async getAll(): Promise<SavingsGoal[]> {
+        return await db.savingsGoals.orderBy('createdAt').reverse().toArray();
+    },
+
+    async getActive(): Promise<SavingsGoal[]> {
+        const all = await db.savingsGoals.orderBy('createdAt').reverse().toArray();
+        return all.filter(goal => !goal.achieved);
+    },
+
+    async getById(id: string): Promise<SavingsGoal | undefined> {
+        return await db.savingsGoals.get(id);
+    },
+
+    async add(data: Omit<SavingsGoal, 'id' | 'currentAmount' | 'achieved' | 'createdAt' | 'updatedAt'>): Promise<string> {
+        const id = generateId();
+        const now = new Date().toISOString();
+        await db.savingsGoals.add({
+            ...data,
+            id,
+            currentAmount: 0,
+            achieved: false,
+            createdAt: now,
+            updatedAt: now
+        });
+        return id;
+    },
+
+    async update(id: string, data: Partial<SavingsGoal>): Promise<void> {
+        await db.savingsGoals.update(id, {
+            ...data,
+            updatedAt: new Date().toISOString()
+        });
+    },
+
+    async delete(id: string): Promise<void> {
+        await db.savingsGoals.delete(id);
+    },
+
+    async markAsAchieved(id: string): Promise<void> {
+        await db.savingsGoals.update(id, {
+            achieved: true,
+            achievedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+    },
+
+    async updateProgress(id: string, currentAmount: number): Promise<void> {
+        const goal = await db.savingsGoals.get(id);
+        if (!goal) return;
+
+        const wasAchieved = goal.achieved;
+        const isAchieved = currentAmount >= goal.targetAmount;
+
+        await db.savingsGoals.update(id, {
+            currentAmount,
+            achieved: isAchieved,
+            achievedAt: isAchieved && !wasAchieved ? new Date().toISOString() : goal.achievedAt,
+            updatedAt: new Date().toISOString()
+        });
     }
 };

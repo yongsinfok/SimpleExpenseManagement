@@ -104,4 +104,39 @@ export interface Settings {
     currencySymbol: string;
     reminderTime?: string;
     showDecimal: boolean;
+    savingsGoalsLastUpdate?: string; // 上次更新储蓄目标进度的时间
 }
+
+// 储蓄目标类型
+export interface SavingsGoal {
+    id: string;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+    startDate: string;
+    targetDate?: string;
+    icon: string;
+    color: string;
+    achieved: boolean;
+    achievedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// 储蓄目标图标选项
+export const SAVINGS_GOAL_ICONS = [
+    'PiggyBank',
+    'Target',
+    'TrendingUp',
+    'Plane',
+    'Home',
+    'GraduationCap',
+    'Car',
+    'Umbrella',
+    'Gift',
+    'Heart',
+    'Star',
+    'Award'
+] as const;
+
+export type SavingsGoalIcon = typeof SAVINGS_GOAL_ICONS[number];

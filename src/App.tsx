@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TabBar, type TabId } from './components/layout';
 import { AddTransaction } from './components/AddTransaction';
-import { HomePage, BillsPage, ChartsPage, ProfilePage } from './pages';
+import { HomePage, BillsPage, ChartsPage, SavingsGoalsPage, ProfilePage } from './pages';
 import { useInitializeData } from './hooks/useTransactions';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SecurityProvider } from './contexts/SecurityContext';
@@ -48,6 +48,13 @@ function AppContent() {
     }
   };
 
+  // Listen for custom navigation event from home page
+  useEffect(() => {
+    const handleNavigateToSavings = () => setActiveTab('savings');
+    document.addEventListener('navigate-to-savings', handleNavigateToSavings);
+    return () => document.removeEventListener('navigate-to-savings', handleNavigateToSavings);
+  }, []);
+
   const handleAddClick = () => {
     setShowAddTransaction(true);
   };
@@ -60,6 +67,8 @@ function AppContent() {
         return <BillsPage />;
       case 'charts':
         return <ChartsPage />;
+      case 'savings':
+        return <SavingsGoalsPage />;
       case 'profile':
         return <ProfilePage />;
       default:
