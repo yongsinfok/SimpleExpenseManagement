@@ -12,6 +12,19 @@ function AppContent() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const { isInitialized, error } = useInitializeData();
 
+  const handleTabChange = (tab: TabId) => {
+    if (tab !== 'add') {
+      setActiveTab(tab);
+    }
+  };
+
+  // Listen for custom navigation event from home page
+  useEffect(() => {
+    const handleNavigateToSavings = () => setActiveTab('savings');
+    document.addEventListener('navigate-to-savings', handleNavigateToSavings);
+    return () => document.removeEventListener('navigate-to-savings', handleNavigateToSavings);
+  }, []);
+
   // 加载中状态
   if (!isInitialized) {
     return (
@@ -41,19 +54,6 @@ function AppContent() {
       </div>
     );
   }
-
-  const handleTabChange = (tab: TabId) => {
-    if (tab !== 'add') {
-      setActiveTab(tab);
-    }
-  };
-
-  // Listen for custom navigation event from home page
-  useEffect(() => {
-    const handleNavigateToSavings = () => setActiveTab('savings');
-    document.addEventListener('navigate-to-savings', handleNavigateToSavings);
-    return () => document.removeEventListener('navigate-to-savings', handleNavigateToSavings);
-  }, []);
 
   const handleAddClick = () => {
     setShowAddTransaction(true);
