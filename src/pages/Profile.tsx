@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
 import { useSecurity } from '../contexts/SecurityContext';
-import { Modal, NumberPad, Card } from '../components/ui';
+import { Modal, NumberPad, Card, PinDots } from '../components/ui';
 import { db } from '../db/database';
 import { AccountManagement } from './AccountManagement';
 import { CategoryManagement } from './CategoryManagement';
@@ -341,21 +341,7 @@ export function ProfilePage() {
                             animate={{ y: 0, opacity: 1 }}
                             className="p-6 pt-2"
                         >
-                            <div className="flex justify-center gap-5 mb-10">
-                                {[0, 1, 2, 3].map((i) => (
-                                    <motion.div
-                                        key={i}
-                                        animate={{
-                                            scale: inputPin.length === i ? 1.2 : 1,
-                                            backgroundColor: inputPin.length > i ? 'var(--color-primary)' : 'transparent'
-                                        }}
-                                        className={cn(
-                                            "w-4 h-4 rounded-full border-2 transition-colors",
-                                            inputPin.length > i ? "border-[var(--color-primary)]" : "border-[var(--color-border)]"
-                                        )}
-                                    />
-                                ))}
-                            </div>
+                            <PinDots length={4} filled={inputPin.length} className="mb-10" />
                             <p className="text-center text-xs font-bold text-[var(--color-text-secondary)] opacity-60 mb-8 uppercase tracking-widest">
                                 {pinStep === 'create' ? '请输入4位数字作为您的应用锁' : '请再次输入刚才的数字以防止错误'}
                             </p>

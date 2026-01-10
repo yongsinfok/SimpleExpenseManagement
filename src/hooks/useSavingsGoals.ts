@@ -4,19 +4,69 @@ import { savingsGoalOperations, db, getSettings, saveSettings } from '../db/data
 import type { SavingsGoal } from '../types';
 import { format, subMonths, parseISO, addMonths } from 'date-fns';
 
-// 获取所有储蓄目标
+const MAX_NAME_LENGTH = 20;
+
+function validateGoalName(name: string | undefined): void {
+    if (name !== undefined && name.trim() === '') {
+        throw new Error('目标名称不能为空');
+    }
+    if (name !== undefined && name.length > MAX_NAME_LENGTH) {
+        throw new Error(`目标名称不能超过 ${MAX_NAME_LENGTH} 个字符`);
+    }
+}
+
+function validateTargetAmount(amount: number | undefined): void {
+    if (amount !== undefined && amount <= 0) {
+        throw new Error('目标金额必须大于 0');
+    }
+}
+
+async function calculateNetSavings(startDate: string): Promise<number> {
+    const allTransactions = await db.transactions.toArray();
+    let netSavings = 0;
+
+    for (const transaction of allTransactions) {
+        if (transaction.date >= startDate) {
+            if (transaction.type === 'income') {
+                netSavings += transaction.amount;
+            } else {
+                netSavings -= transaction.amount;
+            }
+        }
+    }
+
+    return netSavings;
+}
+
+async function updateAllGoalsProgress(): Promise<void> {
+    const settings = getSettings();
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const lastUpdate = settings.savingsGoalsLastUpdate;
+
+    if (lastUpdate === today) {
+        return;
+    }
+
+    const goals = await savingsGoalOperations.getActive();
+
+    for (const goal of goals) {
+        const netSavings = await calculateNetSavings(goal.startDate);
+        await savingsGoalOperations.updateProgress(goal.id, netSavings);
+    }
+
+    saveSettings({ ...settings, savingsGoalsLastUpdate: today });
+}
+
 export function useSavingsGoals() {
     const goals = useLiveQuery(() => savingsGoalOperations.getAll());
     return goals ?? [];
 }
 
-// 获取活跃（未达成）的储蓄目标
 export function useActiveSavingsGoals() {
     const goals = useLiveQuery(() => savingsGoalOperations.getActive());
     return goals ?? [];
 }
 
-// 添加储蓄目标
 export function useAddSavingsGoal() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -26,16 +76,8 @@ export function useAddSavingsGoal() {
         setError(null);
 
         try {
-            // 验证
-            if (!data.name || data.name.trim() === '') {
-                throw new Error('目标名称不能为空');
-            }
-            if (data.targetAmount <= 0) {
-                throw new Error('目标金额必须大于 0');
-            }
-            if (data.name.length > 20) {
-                throw new Error('目标名称不能超过 20 个字符');
-            }
+            validateGoalName(data.name);
+            validateTargetAmount(data.targetAmount);
 
             const id = await savingsGoalOperations.add(data);
             return id;
@@ -51,7 +93,6 @@ export function useAddSavingsGoal() {
     return { addGoal, isLoading, error };
 }
 
-// 更新储蓄目标
 export function useUpdateSavingsGoal() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -61,16 +102,8 @@ export function useUpdateSavingsGoal() {
         setError(null);
 
         try {
-            // 验证
-            if (data.name !== undefined && data.name.trim() === '') {
-                throw new Error('目标名称不能为空');
-            }
-            if (data.targetAmount !== undefined && data.targetAmount <= 0) {
-                throw new Error('目标金额必须大于 0');
-            }
-            if (data.name !== undefined && data.name.length > 20) {
-                throw new Error('目标名称不能超过 20 个字符');
-            }
+            validateGoalName(data.name);
+            validateTargetAmount(data.targetAmount);
 
             await savingsGoalOperations.update(id, data);
         } catch (err) {
@@ -85,7 +118,6 @@ export function useUpdateSavingsGoal() {
     return { updateGoal, isLoading, error };
 }
 
-// 删除储蓄目标
 export function useDeleteSavingsGoal() {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -101,48 +133,13 @@ export function useDeleteSavingsGoal() {
     return { deleteGoal, isLoading };
 }
 
-// 更新所有储蓄目标的进度
 export function useUpdateSavingsProgress() {
     const [isUpdating, setIsUpdating] = useState(false);
 
     const updateProgress = useCallback(async () => {
         setIsUpdating(true);
-
         try {
-            const settings = getSettings();
-            const today = format(new Date(), 'yyyy-MM-dd');
-            const lastUpdate = settings.savingsGoalsLastUpdate;
-
-            // 如果今天已经更新过，跳过
-            if (lastUpdate === today) {
-                setIsUpdating(false);
-                return;
-            }
-
-            const goals = await savingsGoalOperations.getActive();
-
-            // 计算所有交易的总收入和总支出
-            const allTransactions = await db.transactions.toArray();
-
-            for (const goal of goals) {
-                // 计算从目标开始日期到现在的净储蓄
-                let netSavings = 0;
-                for (const t of allTransactions) {
-                    if (t.date >= goal.startDate) {
-                        if (t.type === 'income') {
-                            netSavings += t.amount;
-                        } else {
-                            netSavings -= t.amount;
-                        }
-                    }
-                }
-
-                // 更新目标进度
-                await savingsGoalOperations.updateProgress(goal.id, netSavings);
-            }
-
-            // 更新最后更新时间
-            saveSettings({ ...settings, savingsGoalsLastUpdate: today });
+            await updateAllGoalsProgress();
         } finally {
             setIsUpdating(false);
         }
@@ -151,13 +148,14 @@ export function useUpdateSavingsProgress() {
     return { updateProgress, isUpdating };
 }
 
-// 计算目标达成预测
 export interface GoalPrediction {
     monthsRemaining: number | null;
     predictedDate: Date | null;
     monthlySavingsNeeded: number | null;
     isOnTrack: boolean | null;
 }
+
+const RECENT_MONTHS_COUNT = 3;
 
 export function useGoalPrediction(goal: SavingsGoal): GoalPrediction {
     const [prediction, setPrediction] = useState<GoalPrediction>({
@@ -169,23 +167,22 @@ export function useGoalPrediction(goal: SavingsGoal): GoalPrediction {
 
     useEffect(() => {
         async function calculatePrediction() {
-            // 计算最近 3 个月的平均净储蓄
-            const threeMonthsAgo = format(subMonths(new Date(), 3), 'yyyy-MM-dd');
+            const threeMonthsAgo = format(subMonths(new Date(), RECENT_MONTHS_COUNT), 'yyyy-MM-dd');
             const recentTransactions = await db.transactions
                 .where('date')
                 .between(threeMonthsAgo, format(new Date(), 'yyyy-MM-dd'), true, true)
                 .toArray();
 
             let totalNetSavings = 0;
-            recentTransactions.forEach(t => {
-                if (t.type === 'income') {
-                    totalNetSavings += t.amount;
+            for (const transaction of recentTransactions) {
+                if (transaction.type === 'income') {
+                    totalNetSavings += transaction.amount;
                 } else {
-                    totalNetSavings -= t.amount;
+                    totalNetSavings -= transaction.amount;
                 }
-            });
+            }
 
-            const avgMonthlySavings = totalNetSavings / 3;
+            const avgMonthlySavings = totalNetSavings / RECENT_MONTHS_COUNT;
             const remaining = goal.targetAmount - goal.currentAmount;
 
             if (avgMonthlySavings <= 0) {
@@ -201,7 +198,6 @@ export function useGoalPrediction(goal: SavingsGoal): GoalPrediction {
             const monthsNeeded = remaining / avgMonthlySavings;
             const predictedDate = addMonths(new Date(), Math.ceil(monthsNeeded));
 
-            // 检查是否在计划内
             let isOnTrack = null;
             if (goal.targetDate) {
                 const targetDateObj = parseISO(goal.targetDate);
@@ -222,46 +218,10 @@ export function useGoalPrediction(goal: SavingsGoal): GoalPrediction {
     return prediction;
 }
 
-// 应用启动时自动更新进度
 export function useSavingsGoalsAutoUpdate() {
     useEffect(() => {
-        // 直接在 effect 中执行更新逻辑，避免依赖外部函数
-        const updateProgress = async () => {
-            try {
-                const settings = getSettings();
-                const today = format(new Date(), 'yyyy-MM-dd');
-                const lastUpdate = settings.savingsGoalsLastUpdate;
-
-                // 如果今天已经更新过，跳过
-                if (lastUpdate === today) {
-                    return;
-                }
-
-                const goals = await savingsGoalOperations.getActive();
-                const allTransactions = await db.transactions.toArray();
-
-                for (const goal of goals) {
-                    let netSavings = 0;
-                    for (const t of allTransactions) {
-                        if (t.date >= goal.startDate) {
-                            if (t.type === 'income') {
-                                netSavings += t.amount;
-                            } else {
-                                netSavings -= t.amount;
-                            }
-                        }
-                    }
-
-                    await savingsGoalOperations.updateProgress(goal.id, netSavings);
-                }
-
-                // 更新最后更新时间
-                saveSettings({ ...settings, savingsGoalsLastUpdate: today });
-            } catch (error) {
-                console.error('Failed to update savings progress:', error);
-            }
-        };
-
-        updateProgress();
-    }, []); // 空依赖数组，只在组件挂载时执行一次
+        updateAllGoalsProgress().catch((error) => {
+            console.error('Failed to update savings progress:', error);
+        });
+    }, []);
 }

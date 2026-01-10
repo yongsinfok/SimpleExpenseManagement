@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Toaster } from 'sonner';
 import { TabBar, type TabId } from './components/layout';
 import { AddTransaction } from './components/AddTransaction';
 import { HomePage, BillsPage, ChartsPage, SavingsGoalsPage, ProfilePage } from './pages';
@@ -107,8 +108,6 @@ function AppContent() {
     </div>
   );
 }
-
-import { Toaster } from 'sonner';
 
 export default function App() {
   return (

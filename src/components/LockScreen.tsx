@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
-import { NumberPad } from './ui/NumberPad';
+import { NumberPad, PinDots } from './ui';
 import { useSecurity } from '../contexts/SecurityContext';
+
+const PIN_LENGTH = 4;
+const SHAKE_DURATION = 500;
+const CLEAR_DELAY = 500;
 
 export function LockScreen() {
     const { isLocked, verifyPin, unlock } = useSecurity();
@@ -18,20 +22,18 @@ export function LockScreen() {
     }, [isLocked]);
 
     const handlePinChange = (value: string) => {
-        // PIN 码长度限制为 4 位
-        if (value.length > 4) return;
+        if (value.length > PIN_LENGTH) return;
         setPin(value);
         setError(false);
 
-        // 如果输入满4位，自动验证
-        if (value.length === 4) {
+        if (value.length === PIN_LENGTH) {
             if (verifyPin(value)) {
                 unlock();
             } else {
                 setError(true);
                 setShake(true);
-                setTimeout(() => setShake(false), 500);
-                setTimeout(() => setPin(''), 500); // 输错后清空
+                setTimeout(() => setShake(false), SHAKE_DURATION);
+                setTimeout(() => setPin(''), CLEAR_DELAY);
             }
         }
     };
@@ -59,34 +61,17 @@ export function LockScreen() {
                 </div>
             </div>
 
-            {/* PIN Dots Indicator */}
-            <div className="flex gap-6 mb-12">
-                {[0, 1, 2, 3].map((i) => (
-                    <div
-                        key={i}
-                        className={`
-                            w-4 h-4 rounded-full transition-all duration-300 transform
-                            ${pin.length > i
-                                ? error
-                                    ? 'bg-red-500 scale-110 shadow-lg shadow-red-500/30'
-                                    : 'bg-[var(--color-primary)] scale-110 shadow-lg shadow-[var(--color-primary)]/30'
-                                : 'bg-[var(--color-border)] scale-100 opacity-30'
-                            }
-                        `}
-                    />
-                ))}
-            </div>
+            <PinDots length={PIN_LENGTH} filled={pin.length} className="mb-12" error={error} />
 
             <div className="w-full max-w-[320px]">
                 <NumberPad
                     value={pin}
                     onChange={handlePinChange}
-                    maxLength={4}
+                    maxLength={PIN_LENGTH}
                     hideDecimal
                 />
             </div>
 
-            {/* 忘记密码提示 */}
             <button
                 onClick={() => {
                     if (window.confirm('忘记密码？您可以重置应用数据来清除密码。此操作将删除所有本地记账数据。是否继续？')) {

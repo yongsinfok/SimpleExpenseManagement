@@ -91,10 +91,8 @@ export async function initializeDefaultData(): Promise<void> {
         const hasCategories = (await db.categories.count()) > 0;
 
         if (hasAccounts || hasCategories) {
-            // 如果已有数据，标记为已初始化，不再尝试恢复默认数据
             localStorage.setItem(INIT_KEY, 'true');
 
-            // 确保 defaultAccountId 有效
             const settings = getSettings();
             const currentAccounts = await db.accounts.toArray();
             if (!settings.defaultAccountId || !currentAccounts.find(a => a.id === settings.defaultAccountId)) {
@@ -106,20 +104,15 @@ export async function initializeDefaultData(): Promise<void> {
         }
 
         // 3. 全新初始化
-        // 添加预设分类
         const allDefaultCategories = [...defaultExpenseCategories, ...defaultIncomeCategories];
         await db.categories.bulkAdd(allDefaultCategories);
-
-        // 添加预设账户
         await db.accounts.bulkAdd(defaultAccounts);
 
-        // 设置默认账户
         const settings = getSettings();
         if (defaultAccounts.length > 0) {
             saveSettings({ ...settings, defaultAccountId: defaultAccounts[0].id });
         }
 
-        // 标记完成
         localStorage.setItem(INIT_KEY, 'true');
 
     } catch (error) {
@@ -227,7 +220,6 @@ export const categoryOperations = {
     },
 
     async delete(id: string): Promise<void> {
-        // 检查是否有账单使用了该分类
         const count = await db.transactions.where('categoryId').equals(id).count();
         if (count > 0) {
             throw new Error('无法删除：该分类下已有账单记录');
@@ -264,7 +256,6 @@ export const accountOperations = {
         const account = await db.accounts.get(id);
         if (!account) return;
 
-        // 如果修改了初始余额，需要相应调整当前余额
         if (data.initialBalance !== undefined && data.initialBalance !== account.initialBalance) {
             const diff = data.initialBalance - account.initialBalance;
             const newBalance = account.balance + diff;
@@ -275,13 +266,11 @@ export const accountOperations = {
     },
 
     async delete(id: string): Promise<void> {
-        // 检查是否有账单使用了该分类
         const count = await db.transactions.where('accountId').equals(id).count();
         if (count > 0) {
             throw new Error('无法删除：该账户下已有账单记录');
         }
 
-        // 不能删除最后一个账户
         const total = await db.accounts.count();
         if (total <= 1) {
             throw new Error('无法删除：至少需要保留一个账户');
@@ -298,6 +287,7 @@ export const accountOperations = {
         }
     }
 };
+
 // 预算操作
 export const budgetOperations = {
     async getAll(): Promise<Budget[]> {
@@ -323,7 +313,6 @@ export const budgetOperations = {
     },
 
     async setBudget(budget: Omit<Budget, 'id'>): Promise<string> {
-        // 如果已存在该分类该周期的预算，则更新，否则新增
         const existing = await db.budgets
             .where({ categoryId: budget.categoryId, period: budget.period })
             .first();

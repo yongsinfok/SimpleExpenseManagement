@@ -7,4 +7,6 @@ export { EmptyState } from './EmptyState';
 export { BulkActionBar } from './BulkActionBar';
 export { FilterPresets } from './FilterPresets';
 export { CalendarView } from './CalendarView';
+export { PinDots } from './PinDots';
+export { EditTransactionModal } from './EditTransactionModal';
 export * from './Tabs';
