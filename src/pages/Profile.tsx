@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
-import { CreditCard, PieChart, Download, Upload, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock } from 'lucide-react';
+import { CreditCard, PieChart, Download, Upload, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
 import { useSecurity } from '../contexts/SecurityContext';
 import { Modal, NumberPad, Card, PinDots } from '../components/ui';
-import { db } from '../db/database';
+import { db, aiMessageOperations, aiPreferenceOperations } from '../db/database';
+import { getApiKey, setApiKey } from '../agent/chatService';
 import { AccountManagement } from './AccountManagement';
 import { CategoryManagement } from './CategoryManagement';
 import { BudgetManagement } from './BudgetManagement';
@@ -25,7 +26,31 @@ export function ProfilePage() {
     const [firstPin, setFirstPin] = useState('');
     const [inputPin, setInputPin] = useState('');
 
+    const [apiKeyInput, setApiKeyInput] = useState(getApiKey() || '');
+
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+
+    const handleSaveApiKey = () => {
+        const trimmed = apiKeyInput.trim();
+        if (!trimmed) {
+            toast.error('API Key 不能为空');
+            return;
+        }
+        setApiKey(trimmed);
+        toast.success('API Key 已保存');
+    };
+
+    const handleClearChatHistory = async () => {
+        if (!confirm('确定要清空所有 AI 对话历史吗？')) return;
+        await aiMessageOperations.clear();
+        toast.success('已清空对话历史');
+    };
+
+    const handleClearPreferences = async () => {
+        if (!confirm('确定要清空 AI 记住的所有偏好吗？')) return;
+        await aiPreferenceOperations.clear();
+        toast.success('已清空偏好');
+    };
 
     const handleExportData = async () => {
         try {
@@ -281,6 +306,50 @@ export function ProfilePage() {
                                 <ChevronRight size={18} className="text-[var(--color-text-muted)] opacity-40" />
                             </button>
                         ))}
+                    </div>
+                </Card>
+            </div>
+
+            <div className="space-y-3">
+                <p className="px-2 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">AI 助手</p>
+                <Card padding="lg" shadow="md">
+                    <div className="flex items-center gap-3 mb-4 px-1">
+                        <div className="w-8 h-8 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center">
+                            <Sparkles size={18} className="text-[var(--color-primary)]" strokeWidth={2.5} />
+                        </div>
+                        <span className="text-xs font-black text-[var(--color-text)] uppercase tracking-widest">OpenRouter 配置</span>
+                    </div>
+                    <label className="block text-[11px] font-medium text-[var(--color-text-secondary)] mb-1.5">API Key</label>
+                    <input
+                        type="password"
+                        value={apiKeyInput}
+                        onChange={(e) => setApiKeyInput(e.target.value)}
+                        placeholder="sk-or-v1-..."
+                        autoComplete="off"
+                        className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:border-[var(--color-primary)]"
+                    />
+                    <div className="flex items-center justify-between mt-2 mb-4">
+                        <p className="text-[10px] text-[var(--color-text-muted)]">模型：openrouter/owl-alpha</p>
+                        <button
+                            onClick={handleSaveApiKey}
+                            className="px-4 py-1.5 rounded-lg bg-[var(--color-primary)] text-white text-xs font-bold"
+                        >
+                            保存
+                        </button>
+                    </div>
+                    <div className="flex gap-2 pt-3 border-t border-[var(--color-border)]/30">
+                        <button
+                            onClick={handleClearChatHistory}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] text-[11px] font-bold hover:bg-[var(--color-bg)] transition-colors"
+                        >
+                            <Trash2 size={13} /> 清空对话
+                        </button>
+                        <button
+                            onClick={handleClearPreferences}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] text-[11px] font-bold hover:bg-[var(--color-bg)] transition-colors"
+                        >
+                            <Trash2 size={13} /> 清空偏好
+                        </button>
                     </div>
                 </Card>
             </div>
