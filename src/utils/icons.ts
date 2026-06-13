@@ -3,7 +3,7 @@ import {
     Wallet, Briefcase, TrendingUp, Gift, Coffee, Music, Camera,
     Smartphone, Monitor, Plane, Shirt, Trash, Zap, Bell, MoreHorizontal,
     CreditCard, Banknote, HelpCircle, PiggyBank, Target, Star, Award,
-    Umbrella, Edit3, Trash2,
+    Umbrella, Edit3, Trash2, Sparkles,
 } from 'lucide-react';
 
 export const iconMap: Record<string, any> = {
@@ -11,7 +11,7 @@ export const iconMap: Record<string, any> = {
     Wallet, Briefcase, TrendingUp, Gift, Coffee, Music, Camera,
     Smartphone, Monitor, Plane, Shirt, Trash, Zap, Bell, MoreHorizontal,
     CreditCard, Banknote, HelpCircle, PiggyBank, Target, Star, Award,
-    Umbrella, Edit3, Trash2,
+    Umbrella, Edit3, Trash2, Sparkles,
 };
 
 export function getIcon(name: string) {

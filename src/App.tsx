@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { TabBar, type TabId } from './components/layout';
 import { AddTransaction } from './components/AddTransaction';
-import { HomePage, BillsPage, ChartsPage, SavingsGoalsPage, ProfilePage } from './pages';
+import { HomePage, BillsPage, ChartsPage, SavingsGoalsPage, ProfilePage, AgentChat } from './pages';
 import { useInitializeData } from './hooks/useTransactions';
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate';
 import { UpdatePrompt } from './components/UpdatePrompt';
@@ -13,6 +13,7 @@ import { LockScreen } from './components/LockScreen';
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [showAgent, setShowAgent] = useState(false);
   const { isInitialized, error } = useInitializeData();
   const { isUpdateAvailable, updateApp } = useServiceWorkerUpdate();
 
@@ -66,7 +67,7 @@ function AppContent() {
   const renderPage = () => {
     switch (activeTab) {
       case 'home':
-        return <HomePage onViewAllBills={() => setActiveTab('bills')} />;
+        return <HomePage onViewAllBills={() => setActiveTab('bills')} onOpenAgent={() => setShowAgent(true)} />;
       case 'bills':
         return <BillsPage />;
       case 'charts':
@@ -76,7 +77,7 @@ function AppContent() {
       case 'profile':
         return <ProfilePage />;
       default:
-        return <HomePage onViewAllBills={() => setActiveTab('bills')} />;
+        return <HomePage onViewAllBills={() => setActiveTab('bills')} onOpenAgent={() => setShowAgent(true)} />;
     }
   };
 
@@ -105,6 +106,9 @@ function AppContent() {
 
       {/* 更新提示 */}
       {isUpdateAvailable && <UpdatePrompt onUpdate={updateApp} />}
+
+      {/* AI 助手聊天页 */}
+      {showAgent && <AgentChat onBack={() => setShowAgent(false)} />}
     </div>
   );
 }

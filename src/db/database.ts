@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Transaction, Category, Account, Budget, Settings, SavingsGoal } from '../types';
+import type { Transaction, Category, Account, Budget, Settings, SavingsGoal, AIMessage, AIPreference } from '../types';
 
 // 定义数据库类
 class AccountingDatabase extends Dexie {
@@ -8,6 +8,8 @@ class AccountingDatabase extends Dexie {
     accounts!: EntityTable<Account, 'id'>;
     budgets!: EntityTable<Budget, 'id'>;
     savingsGoals!: EntityTable<SavingsGoal, 'id'>;
+    aiMessages!: EntityTable<AIMessage, 'id'>;
+    aiPreferences!: EntityTable<AIPreference, 'id'>;
 
     constructor() {
         super('AccountingDB');
@@ -25,6 +27,17 @@ class AccountingDatabase extends Dexie {
             accounts: 'id, type, order',
             budgets: 'id, categoryId, period',
             savingsGoals: 'id, achieved, createdAt'
+        });
+
+        // v3: 新增 AI 对话历史与偏好表
+        this.version(3).stores({
+            transactions: 'id, type, categoryId, accountId, date, createdAt',
+            categories: 'id, type, order',
+            accounts: 'id, type, order',
+            budgets: 'id, categoryId, period',
+            savingsGoals: 'id, achieved, createdAt',
+            aiMessages: 'id, role, createdAt',
+            aiPreferences: 'id, key, updatedAt'
         });
     }
 }
@@ -387,5 +400,68 @@ export const savingsGoalOperations = {
             achievedAt: isAchieved && !wasAchieved ? new Date().toISOString() : goal.achievedAt,
             updatedAt: new Date().toISOString()
         });
+    }
+};
+
+// AI 对话历史操作
+export const aiMessageOperations = {
+    async add(data: Omit<AIMessage, 'id' | 'createdAt'>): Promise<string> {
+        const id = generateId();
+        await db.aiMessages.add({
+            ...data,
+            id,
+            createdAt: new Date().toISOString()
+        });
+        return id;
+    },
+
+    async update(id: string, data: Partial<AIMessage>): Promise<void> {
+        await db.aiMessages.update(id, data);
+    },
+
+    async delete(id: string): Promise<void> {
+        await db.aiMessages.delete(id);
+    },
+
+    async getAll(): Promise<AIMessage[]> {
+        return db.aiMessages.orderBy('createdAt').toArray();
+    },
+
+    async getRecent(limit: number): Promise<AIMessage[]> {
+        const all = await db.aiMessages.orderBy('createdAt').reverse().limit(limit).toArray();
+        return all.reverse();
+    },
+
+    async clear(): Promise<void> {
+        await db.aiMessages.clear();
+    }
+};
+
+// AI 偏好操作（提取的用户事实）
+export const aiPreferenceOperations = {
+    async getAll(): Promise<AIPreference[]> {
+        return db.aiPreferences.toArray();
+    },
+
+    async upsert(key: string, value: string): Promise<void> {
+        const existing = await db.aiPreferences.where('key').equals(key).first();
+        const now = new Date().toISOString();
+        if (existing) {
+            await db.aiPreferences.update(existing.id, { value, updatedAt: now });
+        } else {
+            await db.aiPreferences.add({ id: generateId(), key, value, updatedAt: now });
+        }
+    },
+
+    async delete(id: string): Promise<void> {
+        await db.aiPreferences.delete(id);
+    },
+
+    async deleteByKey(key: string): Promise<void> {
+        await db.aiPreferences.where('key').equals(key).delete();
+    },
+
+    async clear(): Promise<void> {
+        await db.aiPreferences.clear();
     }
 };

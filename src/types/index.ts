@@ -123,6 +123,40 @@ export interface SavingsGoal {
     updatedAt: string;
 }
 
+// AI 对话消息类型
+export type AIRole = 'user' | 'assistant' | 'tool';
+
+export interface AIToolCall {
+    id: string;
+    name: string;
+    args: Record<string, unknown>;
+}
+
+export interface AIToolResult {
+    toolCallId: string;
+    name: string;
+    result: unknown;
+}
+
+export interface AIMessage {
+    id: string;
+    role: AIRole;
+    content: string; // 文本内容（tool 角色可留空字符串）
+    toolCalls?: AIToolCall[]; // assistant 发起的工具调用
+    toolResults?: AIToolResult[]; // 工具执行结果（与 tool 角色配合）
+    isStreaming?: boolean; // 是否正在流式生成（不入库，仅 UI 状态）
+    error?: boolean; // 该条消息是否为错误气泡
+    createdAt: string;
+}
+
+// AI 记忆偏好（提取的用户事实）
+export interface AIPreference {
+    id: string;
+    key: string; // 如 monthly_saving_target
+    value: string; // 如 "RM 1000"
+    updatedAt: string;
+}
+
 // 储蓄目标图标选项
 export const SAVINGS_GOAL_ICONS = [
     'PiggyBank',
