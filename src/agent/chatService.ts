@@ -337,6 +337,61 @@ export async function runAgent(params: {
     };
 }
 
+// ---- 历史摘要（上下文压缩） ----
+
+export async function summarizeMessages(opts: {
+    messages: { role: string; content: string }[];
+    existingSummary: string | null;
+    apiKey: string;
+    model: string;
+    signal?: AbortSignal;
+}): Promise<string | null> {
+    const { messages, existingSummary, apiKey, model, signal } = opts;
+
+    const systemPrompt = [
+        '你是一个对话压缩器。把用户与理财助手"小记"的对话压缩成一段简洁的中文摘要，用于节省 token。',
+        '要求：',
+        '1. 保留关键事实、所有出现的具体数字/金额/日期、用户的财务意图、已得出的结论、尚未回答的问题。',
+        '2. 丢弃寒暄、重复内容、工具调用的中间过程。',
+        '3. 用紧凑的条目式表述，不要客套话。',
+        existingSummary ? '4. 下面会先给出【已有摘要】，请把它和新对话一起融合成一份更新后的摘要。' : '',
+        '只输出摘要正文，不要任何前缀或解释。',
+    ].filter(Boolean).join('\n');
+
+    const transcript = [
+        existingSummary ? `【已有摘要】\n${existingSummary}` : '',
+        '【新对话】',
+        ...messages.filter(m => m.content).map(m => `${m.role}: ${m.content}`),
+    ].filter(Boolean).join('\n');
+
+    try {
+        const res = await fetch(OPENROUTER_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': window.location.origin,
+                'X-Title': 'SimpleExpenseManagement',
+            },
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: transcript },
+                ],
+                temperature: 0,
+            }),
+            signal,
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        return text.trim() || null;
+    } catch {
+        return null;
+    }
+}
+
 // ---- 后台偏好提取 ----
 
 export async function extractPreferences(

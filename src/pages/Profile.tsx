@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
 import { useSecurity } from '../contexts/SecurityContext';
 import { Modal, NumberPad, Card, PinDots } from '../components/ui';
-import { db, aiMessageOperations, aiPreferenceOperations } from '../db/database';
+import { db, aiPreferenceOperations, aiSessionOperations } from '../db/database';
 import { getApiKey, setApiKey } from '../agent/chatService';
 import { AccountManagement } from './AccountManagement';
 import { CategoryManagement } from './CategoryManagement';
@@ -41,9 +41,9 @@ export function ProfilePage() {
     };
 
     const handleClearChatHistory = async () => {
-        if (!confirm('确定要清空所有 AI 对话历史吗？')) return;
-        await aiMessageOperations.clear();
-        toast.success('已清空对话历史');
+        if (!confirm('确定要清空所有 AI 对话历史和会话吗？')) return;
+        await aiSessionOperations.clearAll();
+        toast.success('已清空全部对话');
     };
 
     const handleClearPreferences = async () => {
@@ -342,7 +342,7 @@ export function ProfilePage() {
                             onClick={handleClearChatHistory}
                             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] text-[11px] font-bold hover:bg-[var(--color-bg)] transition-colors"
                         >
-                            <Trash2 size={13} /> 清空对话
+                            <Trash2 size={13} /> 清空全部对话
                         </button>
                         <button
                             onClick={handleClearPreferences}

@@ -20,13 +20,18 @@ This is a PWA (Progressive Web App) accounting application built with React 19, 
 
 ## Database Architecture (Dexie.js)
 
-The database is defined in `src/db/database.ts`. Schema is at **version 2** (v2 added `savingsGoals`):
+The database is defined in `src/db/database.ts`. Schema is at **version 4** (v2 added `savingsGoals`, v3 added AI agent tables, v4 added AI sessions + per-message `sessionId`):
 
 - **transactions**: `id, type, categoryId, accountId, date, createdAt`
 - **categories**: `id, type, order`
 - **accounts**: `id, type, order`
 - **budgets**: `id, categoryId, period`
 - **savingsGoals**: `id, achieved, createdAt` (added in v2)
+- **aiMessages**: `id, role, sessionId, createdAt` (added in v3, `sessionId` index added in v4)
+- **aiPreferences**: `id, key, updatedAt` (added in v3)
+- **aiSessions**: `id, updatedAt` (added in v4)
+
+The v4 upgrade migrates any existing `aiMessages` without a `sessionId` into a `sess_legacy` session ("之前的对话") so no history is lost.
 
 ### Key Database Patterns:
 
@@ -162,3 +167,40 @@ Configured in `vite.config.ts` with VitePWA plugin:
 - Orientation locked to portrait
 
 The `vercel.json` file enables SPA routing by rewriting all routes to `index.html`.
+
+## AI Agent
+
+A financial assistant chat feature built on OpenRouter's `openrouter/owl-alpha` model via browser `fetch` — no SDK, no backend.
+
+### Key files:
+
+- **`src/agent/chatService.ts`**: Core loop — builds system prompt (role + currency + date + user preferences), sends streamed requests to OpenRouter, executes tool calls in a loop (max 5 rounds), falls back to monthly snapshot injection if tool-calling fails. Also hosts `summarizeMessages()` (history compression) and `extractPreferences()`.
+- **`src/agent/tools.ts`**: Tool definitions (OpenAI-compatible) + executors. All tools are read-only Dexie queries: `get_period_summary`, `get_account_balances`, `get_budget_status`, `get_savings_goals`, `query_transactions`, `get_user_preferences`
+- **`src/hooks/useAgent.ts`**: React hook wrapping `runAgent` with streaming state. Owns session state (active session in localStorage `ai_active_session`) and exposes `selectSession` / `startNewSession` / `deleteSession` / `clearCurrent` / `compressHistory`.
+- **`src/pages/AgentChat.tsx`**: Full-screen chat UI — message bubbles, summary bubble, tool-call status chips, suggestion chips on empty state, header (new-session + more menu), session drawer, bottom input bar
+
+### API key:
+
+Stored in `localStorage` under key `openrouter_api_key`. Read/write via `getApiKey()` / `setApiKey()` in `chatService.ts`. Never hardcode or commit. User enters it in Profile → AI 助手 settings section.
+
+### Database tables (v3/v4):
+
+- **`aiMessages`**: Full conversation history (`role`: user/assistant/tool, `content`, `toolCalls?`, `toolResults?`, `isSummary?`, `sessionId?`, `createdAt`). `isSummary` marks a generated compression-summary message. `sessionId` scopes a message to a session (v4). Loaded per active session as history on each `runAgent` call.
+- **`aiPreferences`**: Extracted user facts/preferences (`key`, `value`, `updatedAt`). Injected into system prompt on every request. Written by `extractPreferences()` after each conversation turn (lightweight background call, failures are silently ignored).
+- **`aiSessions`** (v4): Conversation sessions (`id`, `title`, `createdAt`, `updatedAt`). `aiSessionOperations.create/touch/rename/delete` — `delete` also removes the session's messages. Active session id in localStorage `ai_active_session`.
+
+### Sessions:
+
+The agent supports multiple independent conversations. `useAgent` ensures an active session exists on mount (creating one if none), auto-titles a session from its first user message (first 16 chars), and keeps `updatedAt` fresh on each turn. The chat header's title opens a session drawer; `SquarePen` starts a new session; the `MoreVertical` menu offers `压缩历史` / `清空当前会话`. Profile → AI 助手 "清空全部对话" wipes all sessions + messages via `aiSessionOperations.clearAll()`.
+
+### Context compression:
+
+Manual, per-session. `compressHistory()` keeps the most recent `KEEP_RECENT` (6) raw messages, sends the older ones (plus any prior summary) to `summarizeMessages()` for a rolling Chinese summary, then deletes the originals and writes one `isSummary` message dated to the earliest summarized message so it sorts first. When building request history, `aiMessagesToChatMessages` injects an `isSummary` message as a `system` message ("【之前的对话摘要】…") sitting right after `runAgent`'s own system prompt — so the model retains context while spending far fewer tokens. Guarded off while sending/compressing; no-op with a toast if history is too short.
+
+### Fallback mode:
+
+If the model fails to use tools (or an HTTP error occurs), `runAgent` retries once with `useTools: false` and injects a `buildMonthlySnapshot()` summary directly into the system prompt.
+
+### Navigation:
+
+Entry point is a `Sparkles` icon button on `Home.tsx`. Chat page is shown via a boolean state in `App.tsx` (not a new tab). Back button returns to home. The chat page has no bottom `TabBar`.
