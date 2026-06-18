@@ -304,6 +304,7 @@ export function useAgent() {
                 role: 'assistant',
                 content: summary,
                 isSummary: true,
+                summaryCount: toSummarize.length,
                 sessionId: activeSessionId,
                 // 让摘要排在所有保留消息之前
             }).then((id) => aiMessageOperations.update(id, { createdAt: earliestCreatedAt }));

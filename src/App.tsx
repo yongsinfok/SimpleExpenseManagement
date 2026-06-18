@@ -13,7 +13,6 @@ import { LockScreen } from './components/LockScreen';
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
-  const [showAgent, setShowAgent] = useState(false);
   const { isInitialized, error } = useInitializeData();
   const { isUpdateAvailable, updateApp } = useServiceWorkerUpdate();
 
@@ -67,17 +66,19 @@ function AppContent() {
   const renderPage = () => {
     switch (activeTab) {
       case 'home':
-        return <HomePage onViewAllBills={() => setActiveTab('bills')} onOpenAgent={() => setShowAgent(true)} />;
+        return <HomePage onViewAllBills={() => setActiveTab('bills')} />;
       case 'bills':
         return <BillsPage />;
       case 'charts':
         return <ChartsPage />;
       case 'savings':
         return <SavingsGoalsPage />;
+      case 'agent':
+        return <AgentChat onOpenSettings={() => setActiveTab('profile')} />;
       case 'profile':
         return <ProfilePage />;
       default:
-        return <HomePage onViewAllBills={() => setActiveTab('bills')} onOpenAgent={() => setShowAgent(true)} />;
+        return <HomePage onViewAllBills={() => setActiveTab('bills')} />;
     }
   };
 
@@ -106,9 +107,6 @@ function AppContent() {
 
       {/* 更新提示 */}
       {isUpdateAvailable && <UpdatePrompt onUpdate={updateApp} />}
-
-      {/* AI 助手聊天页 */}
-      {showAgent && <AgentChat onBack={() => setShowAgent(false)} />}
     </div>
   );
 }

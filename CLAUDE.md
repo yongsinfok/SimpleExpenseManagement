@@ -72,10 +72,11 @@ All hooks in `src/hooks/` use Dexie live queries, meaning components automatical
 
 **No traditional router** — uses tab-based navigation with state in `App.tsx`:
 
-- Tab IDs: `'home'`, `'bills'`, `'charts'`, `'savings'`, `'profile'`
+- Tab IDs: `'home'`, `'bills'`, `'charts'`, `'savings'`, `'agent'`, `'profile'`
 - Tab switching via `useState<TabId>`
 - "Add" button opens a modal overlay (`AddTransaction`) rather than navigating
-- Bottom navigation in `src/components/layout/TabBar.tsx`
+- Bottom navigation in `src/components/layout/TabBar.tsx` (7 items + raised center "Add" FAB; regular tabs use a tightened `min-w-[48px]` to fit)
+- **AI 助手 is a regular tab** (`'agent'`), rendered inline by `renderPage()` in `App.tsx` (`<AgentChat onOpenSettings={() => setActiveTab('profile')} />`). It is **not** a fullscreen overlay anymore and there is no entry card on Home — the tab is the only entry. The chat page keeps the global `TabBar` visible (its input bar sits above the TabBar; `pb-24` reserves space).
 - **Cross-component navigation** uses custom DOM events (e.g. `document.dispatchEvent(new Event('navigate-to-savings'))`, listened to in `App.tsx`). Use this pattern when a deep child needs to switch tabs.
 
 ## Data Models
@@ -195,7 +196,7 @@ The agent supports multiple independent conversations. `useAgent` ensures an act
 
 ### Context compression:
 
-Manual, per-session. `compressHistory()` keeps the most recent `KEEP_RECENT` (6) raw messages, sends the older ones (plus any prior summary) to `summarizeMessages()` for a rolling Chinese summary, then deletes the originals and writes one `isSummary` message dated to the earliest summarized message so it sorts first. When building request history, `aiMessagesToChatMessages` injects an `isSummary` message as a `system` message ("【之前的对话摘要】…") sitting right after `runAgent`'s own system prompt — so the model retains context while spending far fewer tokens. Guarded off while sending/compressing; no-op with a toast if history is too short.
+Manual, per-session. `compressHistory()` keeps the most recent `KEEP_RECENT` (6) raw messages, sends the older ones (plus any prior summary) to `summarizeMessages()` for a rolling Chinese summary, then deletes the originals and writes one `isSummary` message (carrying `summaryCount` = number of folded messages) dated to the earliest summarized message so it sorts first. When building request history, `aiMessagesToChatMessages` injects an `isSummary` message as a `system` message ("【之前的对话摘要】…") sitting right after `runAgent`'s own system prompt — so the model retains context while spending far fewer tokens. Guarded off while sending/compressing; no-op with a toast if history is too short. In the UI the `isSummary` message renders as a Claude-Code-style collapsed indicator (`CompactionIndicator` in `AgentChat.tsx`: `⎿ 已压缩 N 条对话 · 点击展开`, expands to show the summary text).
 
 ### Fallback mode:
 
@@ -203,4 +204,4 @@ If the model fails to use tools (or an HTTP error occurs), `runAgent` retries on
 
 ### Navigation:
 
-Entry point is a `Sparkles` icon button on `Home.tsx`. Chat page is shown via a boolean state in `App.tsx` (not a new tab). Back button returns to home. The chat page has no bottom `TabBar`.
+Entry point is the `'agent'` tab in the bottom `TabBar`. The chat page is rendered inline by `renderPage()` in `App.tsx` (ChatGPT-style: header with `PanelLeft` session drawer toggle + `SquarePen` new-session + `MoreVertical` menu, scrollable avatar/bubble messages, rounded input bar). The global `TabBar` stays visible; the input bar sits above it (`pb-24` reserves the space). No-key state shows a "前往设置" button → switches to the `'profile'` tab via the `onOpenSettings` prop.

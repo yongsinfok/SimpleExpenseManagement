@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Send, BarChart3, Wallet, Target, Search, Repeat, SquarePen, MoreVertical, Archive, Trash2, MessageSquare, Plus, X } from 'lucide-react';
+import { Sparkles, Send, BarChart3, Wallet, Target, Search, Repeat, SquarePen, MoreVertical, Archive, Trash2, MessageSquare, Plus, X, PanelLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgent } from '../hooks/useAgent';
 import { getApiKey } from '../agent/chatService';
@@ -7,7 +7,7 @@ import { cn } from '../utils/cn';
 import type { AIMessage, AIToolCall, AIToolResult } from '../types';
 
 interface AgentChatProps {
-    onBack: () => void;
+    onOpenSettings: () => void;
 }
 
 // 工具名 → 友好标签 + 图标
@@ -27,6 +27,18 @@ const SUGGESTIONS = [
     '按分类看看我这月花了多少',
 ];
 
+// 助手头像
+function AssistantAvatar({ size = 28 }: { size?: number }) {
+    return (
+        <div
+            style={{ width: size, height: size }}
+            className="flex-shrink-0 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center shadow-sm self-end"
+        >
+            <Sparkles size={size * 0.55} className="text-white" />
+        </div>
+    );
+}
+
 function ToolBadge({ toolCall, result }: { toolCall: AIToolCall; result?: AIToolResult }) {
     const meta = TOOL_META[toolCall.name] || { label: toolCall.name, icon: Repeat };
     const Icon = meta.icon;
@@ -39,41 +51,67 @@ function ToolBadge({ toolCall, result }: { toolCall: AIToolCall; result?: AITool
     );
 }
 
-function SummaryBubble({ message }: { message: AIMessage }) {
+// Claude-Code 风格的折叠压缩指示器
+function CompactionIndicator({ message }: { message: AIMessage }) {
     const [expanded, setExpanded] = useState(false);
+    const count = message.summaryCount;
     return (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
-            <button
-                onClick={() => setExpanded(v => !v)}
-                className="w-full max-w-[92%] text-left px-3.5 py-2.5 rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-secondary)]/60"
-            >
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">
-                    <Archive size={12} />
-                    已压缩的历史摘要
-                </div>
-                <p className={cn('text-xs text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap', !expanded && 'line-clamp-3')}>
-                    {message.content}
-                </p>
-            </button>
-        </motion.div>
+        <div className="flex justify-start">
+            <div className="max-w-[90%] w-full">
+                <button
+                    onClick={() => setExpanded(v => !v)}
+                    className="w-full flex items-center gap-2 pl-1 pr-3 py-2 text-left group"
+                >
+                    <span className="text-[var(--color-text-muted)] text-base leading-none select-none">⎿</span>
+                    <Archive size={13} className="text-[var(--color-text-muted)] flex-shrink-0" />
+                    <span className="text-xs font-medium text-[var(--color-text-muted)] flex-1 truncate">
+                        {count ? `已压缩 ${count} 条对话` : '已压缩历史对话'}
+                        <span className="opacity-60"> · 点击展开</span>
+                    </span>
+                    <ChevronRight
+                        size={14}
+                        className={cn('text-[var(--color-text-muted)] transition-transform', expanded && 'rotate-90')}
+                    />
+                </button>
+                <AnimatePresence initial={false}>
+                    {expanded && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden ml-5"
+                        >
+                            <div className="mt-1 pl-3 border-l-2 border-[var(--color-border)] text-[11px] leading-relaxed text-[var(--color-text-muted)] whitespace-pre-wrap">
+                                {message.content}
+                            </div>
+                            <p className="mt-1.5 ml-3 text-[10px] text-[var(--color-text-muted)] opacity-50">
+                                之前的对话已折叠以节省 token（模型仍记得要点）
+                            </p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
     );
 }
 
 function MessageBubble({ message }: { message: AIMessage }) {
     const isUser = message.role === 'user';
     if (message.role === 'tool') return null;
-    if (message.isSummary) return <SummaryBubble message={message} />;
+    if (message.isSummary) return <CompactionIndicator message={message} />;
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
+            className={cn('flex gap-2.5 items-end', isUser ? 'justify-end' : 'justify-start')}
         >
-            <div className={cn('max-w-[85%]', isUser && 'flex flex-col items-end')}>
-                {/* 工具调用气泡 */}
+            {!isUser && <AssistantAvatar />}
+            <div className={cn('max-w-[80%]', isUser && 'flex flex-col items-end')}>
+                {/* 工具调用 pill */}
                 {message.toolCalls && message.toolCalls.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-1.5 justify-start">
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
                         {message.toolCalls.map((tc) => {
                             const result = message.toolResults?.find(r => r.toolCallId === tc.id);
                             return <ToolBadge key={tc.id} toolCall={tc} result={result} />;
@@ -82,12 +120,12 @@ function MessageBubble({ message }: { message: AIMessage }) {
                 )}
                 <div
                     className={cn(
-                        'px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words',
+                        'px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words',
                         isUser
-                            ? 'bg-[var(--color-primary)] text-white rounded-br-md'
+                            ? 'bg-[var(--color-primary)] text-white rounded-2xl rounded-br-md'
                             : message.error
-                                ? 'bg-[var(--color-expense-bg)] text-[var(--color-expense)] rounded-bl-md'
-                                : 'bg-[var(--color-bg-secondary)] text-[var(--color-text)] rounded-bl-md border border-[var(--color-border)]'
+                                ? 'bg-[var(--color-expense-bg)] text-[var(--color-expense)] rounded-2xl rounded-bl-md'
+                                : 'bg-[var(--color-bg-secondary)] text-[var(--color-text)] rounded-2xl rounded-bl-md'
                     )}
                 >
                     {message.content}
@@ -101,8 +139,9 @@ function MessageBubble({ message }: { message: AIMessage }) {
 function StreamingBubble({ streaming }: { streaming: { content: string; toolCalls: AIToolCall[]; toolResults: AIToolResult[] } }) {
     const thinking = !streaming.content && streaming.toolCalls.length === 0;
     return (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-            <div className="max-w-[85%]">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5 items-end justify-start">
+            <AssistantAvatar />
+            <div className="max-w-[80%]">
                 {streaming.toolCalls.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-1.5">
                         {streaming.toolCalls.map((tc) => (
@@ -114,11 +153,13 @@ function StreamingBubble({ streaming }: { streaming: { content: string; toolCall
                         ))}
                     </div>
                 )}
-                <div className="px-4 py-2.5 rounded-2xl rounded-bl-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text)] text-sm leading-relaxed min-w-[60px]">
+                <div className="px-4 py-2.5 rounded-2xl rounded-bl-md bg-[var(--color-bg-secondary)] text-[var(--color-text)] text-sm leading-relaxed min-w-[60px]">
                     {streaming.content ? (
                         <span className="whitespace-pre-wrap break-words">{streaming.content}<span className="inline-block w-1.5 h-4 bg-[var(--color-primary)] align-middle ml-0.5 animate-pulse" /></span>
                     ) : thinking ? (
-                        <span className="text-[var(--color-text-muted)]">正在思考…</span>
+                        <span className="inline-flex items-center gap-1.5 text-[var(--color-text-muted)]">
+                            <Loader2 size={13} className="animate-spin" /> 正在思考…
+                        </span>
                     ) : null}
                 </div>
             </div>
@@ -149,7 +190,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
     );
 }
 
-function NoKeyCard({ onBack }: { onBack: () => void }) {
+function NoKeyCard({ onOpenSettings }: { onOpenSettings: () => void }) {
     return (
         <div className="flex flex-col items-center justify-center h-full px-8 text-center">
             <div className="w-16 h-16 rounded-3xl bg-[var(--color-bg-secondary)] flex items-center justify-center mb-4">
@@ -157,13 +198,13 @@ function NoKeyCard({ onBack }: { onBack: () => void }) {
             </div>
             <h2 className="text-lg font-bold text-[var(--color-text)] mb-2">还没有配置 AI 助手</h2>
             <p className="text-sm text-[var(--color-text-secondary)] mb-6 max-w-xs">
-                请先到「我的 → AI 助手」填写你的 OpenRouter API Key，才能开始对话。
+                请先填写你的 OpenRouter API Key，才能开始对话。
             </p>
             <button
-                onClick={onBack}
+                onClick={onOpenSettings}
                 className="px-6 py-2.5 rounded-2xl bg-[var(--color-primary)] text-white text-sm font-medium"
             >
-                返回首页
+                前往设置填写 API Key
             </button>
         </div>
     );
@@ -255,7 +296,7 @@ function SessionDrawer({
     );
 }
 
-export function AgentChat({ onBack }: AgentChatProps) {
+export function AgentChat({ onOpenSettings }: AgentChatProps) {
     const {
         messages, streaming, isSending, send, stop,
         sessions, activeSessionId, selectSession, startNewSession, deleteSession, clearCurrent,
@@ -304,25 +345,25 @@ export function AgentChat({ onBack }: AgentChatProps) {
         clearCurrent();
     };
 
+    // 当前会话标题
+    const activeTitle = sessions.find(s => s.id === activeSessionId)?.title || 'AI 助手';
+
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)] safe-area-inset-top">
+        <div className="flex-1 flex flex-col min-h-0 pb-24">
             {/* 顶栏 */}
-            <header className="flex items-center gap-2 px-3 h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg safe-area-top">
+            <header className="flex items-center gap-1 px-3 h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg">
                 <button
-                    onClick={onBack}
-                    className="p-1.5 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
-                    aria-label="返回"
+                    onClick={() => setDrawerOpen(true)}
+                    className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
+                    aria-label="对话列表"
                 >
-                    <ArrowLeft size={22} className="text-[var(--color-text)]" />
+                    <PanelLeft size={20} className="text-[var(--color-text)]" />
                 </button>
                 <button
                     onClick={() => setDrawerOpen(true)}
                     className="flex items-center gap-2 flex-1 min-w-0 px-1 py-1 rounded-lg hover:bg-[var(--color-bg-secondary)] transition-colors"
                 >
-                    <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center flex-shrink-0">
-                        <Sparkles size={15} className="text-white" />
-                    </div>
-                    <span className="font-bold text-[var(--color-text)] truncate">AI 助手</span>
+                    <span className="font-bold text-[var(--color-text)] truncate">{activeTitle}</span>
                 </button>
                 <button
                     onClick={() => startNewSession()}
@@ -370,9 +411,9 @@ export function AgentChat({ onBack }: AgentChatProps) {
             </header>
 
             {/* 内容 */}
-            <div ref={scrollRef} className="flex-1 overflow-y-auto hide-scrollbar">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto hide-scrollbar min-h-0">
                 {!hasKey ? (
-                    <NoKeyCard onBack={onBack} />
+                    <NoKeyCard onOpenSettings={onOpenSettings} />
                 ) : messages.length === 0 && !streaming ? (
                     <EmptyState onPick={(t) => handleSend(t)} />
                 ) : (
@@ -389,7 +430,7 @@ export function AgentChat({ onBack }: AgentChatProps) {
 
             {/* 输入栏 */}
             {hasKey && (
-                <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg px-3 py-2.5 safe-area-bottom">
+                <div className="border-t border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg px-3 py-2.5">
                     <div className="flex items-end gap-2 max-w-2xl mx-auto">
                         <textarea
                             value={input}
@@ -400,14 +441,14 @@ export function AgentChat({ onBack }: AgentChatProps) {
                                     handleSend();
                                 }
                             }}
-                            placeholder="问点什么…（Enter 发送，Shift+Enter 换行）"
+                            placeholder="给小记发消息…（Enter 发送，Shift+Enter 换行）"
                             rows={1}
                             className="flex-1 resize-none max-h-32 px-4 py-2.5 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:border-[var(--color-primary)]"
                         />
                         {isSending ? (
                             <button
                                 onClick={stop}
-                                className="w-11 h-11 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0"
+                                className="w-11 h-11 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0"
                                 aria-label="停止"
                             >
                                 <div className="w-3.5 h-3.5 rounded-sm bg-[var(--color-expense)]" />
@@ -416,7 +457,7 @@ export function AgentChat({ onBack }: AgentChatProps) {
                             <button
                                 onClick={() => handleSend()}
                                 disabled={!input.trim()}
-                                className="w-11 h-11 rounded-2xl bg-[var(--color-primary)] text-white flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
+                                className="w-11 h-11 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] text-white flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity shadow-md"
                                 aria-label="发送"
                             >
                                 <Send size={18} />
