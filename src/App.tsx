@@ -83,7 +83,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col safe-area-inset-top transition-colors duration-200">
+    <div className="min-h-screen bg-[var(--color-bg)] flex flex-col safe-area-top transition-colors duration-200">
       <LockScreen />
 
       {/* 页面内容 */}
