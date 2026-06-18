@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Transaction, Category, Account, Budget, Settings, SavingsGoal, AIMessage, AIPreference } from '../types';
+import type { Transaction, Category, Account, Budget, Settings, SavingsGoal, AIMessage, AIPreference, AISession } from '../types';
 
 // 定义数据库类
 class AccountingDatabase extends Dexie {
@@ -10,6 +10,7 @@ class AccountingDatabase extends Dexie {
     savingsGoals!: EntityTable<SavingsGoal, 'id'>;
     aiMessages!: EntityTable<AIMessage, 'id'>;
     aiPreferences!: EntityTable<AIPreference, 'id'>;
+    aiSessions!: EntityTable<AISession, 'id'>;
 
     constructor() {
         super('AccountingDB');
@@ -38,6 +39,37 @@ class AccountingDatabase extends Dexie {
             savingsGoals: 'id, achieved, createdAt',
             aiMessages: 'id, role, createdAt',
             aiPreferences: 'id, key, updatedAt'
+        });
+
+        // v4: AI 多会话 + 历史压缩
+        this.version(4).stores({
+            transactions: 'id, type, categoryId, accountId, date, createdAt',
+            categories: 'id, type, order',
+            accounts: 'id, type, order',
+            budgets: 'id, categoryId, period',
+            savingsGoals: 'id, achieved, createdAt',
+            aiMessages: 'id, role, sessionId, createdAt',
+            aiPreferences: 'id, key, updatedAt',
+            aiSessions: 'id, updatedAt'
+        }).upgrade(async (tx) => {
+            // 把 v3 遗留的（无 sessionId）消息归入一个 legacy 会话，避免历史丢失
+            let hasOrphans = false;
+            await tx.table('aiMessages').toCollection().modify((m: AIMessage) => {
+                if (!m.sessionId) {
+                    m.sessionId = 'sess_legacy';
+                    hasOrphans = true;
+                }
+            });
+
+            if (hasOrphans) {
+                const now = new Date().toISOString();
+                await tx.table('aiSessions').add({
+                    id: 'sess_legacy',
+                    title: '之前的对话',
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            }
         });
     }
 }
@@ -427,6 +459,10 @@ export const aiMessageOperations = {
         return db.aiMessages.orderBy('createdAt').toArray();
     },
 
+    async getBySession(sessionId: string): Promise<AIMessage[]> {
+        return db.aiMessages.where('sessionId').equals(sessionId).sortBy('createdAt');
+    },
+
     async getRecent(limit: number): Promise<AIMessage[]> {
         const all = await db.aiMessages.orderBy('createdAt').reverse().limit(limit).toArray();
         return all.reverse();
@@ -434,6 +470,46 @@ export const aiMessageOperations = {
 
     async clear(): Promise<void> {
         await db.aiMessages.clear();
+    },
+
+    async clearSession(sessionId: string): Promise<void> {
+        await db.aiMessages.where('sessionId').equals(sessionId).delete();
+    }
+};
+
+// AI 会话操作
+export const aiSessionOperations = {
+    async getAll(): Promise<AISession[]> {
+        return db.aiSessions.orderBy('updatedAt').reverse().toArray();
+    },
+
+    async getById(id: string): Promise<AISession | undefined> {
+        return db.aiSessions.get(id);
+    },
+
+    async create(title = '新对话'): Promise<string> {
+        const id = generateId();
+        const now = new Date().toISOString();
+        await db.aiSessions.add({ id, title, createdAt: now, updatedAt: now });
+        return id;
+    },
+
+    async touch(id: string): Promise<void> {
+        await db.aiSessions.update(id, { updatedAt: new Date().toISOString() });
+    },
+
+    async rename(id: string, title: string): Promise<void> {
+        await db.aiSessions.update(id, { title, updatedAt: new Date().toISOString() });
+    },
+
+    async delete(id: string): Promise<void> {
+        await db.aiMessages.where('sessionId').equals(id).delete();
+        await db.aiSessions.delete(id);
+    },
+
+    async clearAll(): Promise<void> {
+        await db.aiMessages.clear();
+        await db.aiSessions.clear();
     }
 };
 

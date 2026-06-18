@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Send, BarChart3, Wallet, Target, Search, Repeat } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, BarChart3, Wallet, Target, Search, Repeat, SquarePen, MoreVertical, Archive, Trash2, MessageSquare, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAgent } from '../hooks/useAgent';
 import { getApiKey } from '../agent/chatService';
@@ -39,9 +39,30 @@ function ToolBadge({ toolCall, result }: { toolCall: AIToolCall; result?: AITool
     );
 }
 
+function SummaryBubble({ message }: { message: AIMessage }) {
+    const [expanded, setExpanded] = useState(false);
+    return (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-center">
+            <button
+                onClick={() => setExpanded(v => !v)}
+                className="w-full max-w-[92%] text-left px-3.5 py-2.5 rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-secondary)]/60"
+            >
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-text-muted)] mb-1 uppercase tracking-wider">
+                    <Archive size={12} />
+                    已压缩的历史摘要
+                </div>
+                <p className={cn('text-xs text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap', !expanded && 'line-clamp-3')}>
+                    {message.content}
+                </p>
+            </button>
+        </motion.div>
+    );
+}
+
 function MessageBubble({ message }: { message: AIMessage }) {
     const isUser = message.role === 'user';
     if (message.role === 'tool') return null;
+    if (message.isSummary) return <SummaryBubble message={message} />;
 
     return (
         <motion.div
@@ -148,15 +169,117 @@ function NoKeyCard({ onBack }: { onBack: () => void }) {
     );
 }
 
+// 会话列表抽屉
+function SessionDrawer({
+    open,
+    onClose,
+    sessions,
+    activeSessionId,
+    onSelect,
+    onNew,
+    onDelete,
+}: {
+    open: boolean;
+    onClose: () => void;
+    sessions: { id: string; title: string; updatedAt: string }[];
+    activeSessionId: string | null;
+    onSelect: (id: string) => void;
+    onNew: () => void;
+    onDelete: (id: string) => void;
+}) {
+    return (
+        <AnimatePresence>
+            {open && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 z-50 bg-black/40"
+                    />
+                    <motion.div
+                        initial={{ x: '-100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '-100%' }}
+                        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                        className="fixed top-0 left-0 bottom-0 z-50 w-[80%] max-w-xs bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col safe-area-top"
+                    >
+                        <div className="flex items-center justify-between px-4 h-14 border-b border-[var(--color-border)]">
+                            <span className="font-bold text-[var(--color-text)]">对话列表</span>
+                            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-[var(--color-bg-secondary)]" aria-label="关闭">
+                                <X size={18} className="text-[var(--color-text-secondary)]" />
+                            </button>
+                        </div>
+
+                        <div className="p-3">
+                            <button
+                                onClick={() => { onNew(); onClose(); }}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-sm font-medium"
+                            >
+                                <Plus size={16} /> 新建对话
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto hide-scrollbar px-2 pb-4 space-y-1">
+                            {sessions.length === 0 && (
+                                <p className="text-center text-xs text-[var(--color-text-muted)] mt-8">还没有对话</p>
+                            )}
+                            {sessions.map((s) => (
+                                <div
+                                    key={s.id}
+                                    className={cn(
+                                        'group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-colors',
+                                        s.id === activeSessionId
+                                            ? 'bg-[var(--color-primary)]/10 text-[var(--color-text)]'
+                                            : 'hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]'
+                                    )}
+                                    onClick={() => { onSelect(s.id); onClose(); }}
+                                >
+                                    <MessageSquare size={15} className="flex-shrink-0 opacity-60" />
+                                    <span className="flex-1 text-sm truncate">{s.title || '新对话'}</span>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-[var(--color-bg)] transition-opacity"
+                                        aria-label="删除会话"
+                                    >
+                                        <Trash2 size={14} className="text-[var(--color-text-muted)] hover:text-[var(--color-expense)]" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}
+
 export function AgentChat({ onBack }: AgentChatProps) {
-    const { messages, streaming, isSending, send, stop } = useAgent();
+    const {
+        messages, streaming, isSending, send, stop,
+        sessions, activeSessionId, selectSession, startNewSession, deleteSession, clearCurrent,
+        compressHistory, isCompressing,
+    } = useAgent();
     const [input, setInput] = useState('');
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const hasKey = !!getApiKey();
     const scrollRef = useRef<HTMLDivElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages, streaming]);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [menuOpen]);
 
     const handleSend = (text?: string) => {
         const content = (text ?? input).trim();
@@ -165,22 +288,84 @@ export function AgentChat({ onBack }: AgentChatProps) {
         send(content);
     };
 
+    const handleDeleteSession = (id: string) => {
+        if (!confirm('确定删除这个会话吗？该会话的所有消息将一并删除。')) return;
+        deleteSession(id);
+    };
+
+    const handleCompress = () => {
+        setMenuOpen(false);
+        compressHistory();
+    };
+
+    const handleClearCurrent = () => {
+        setMenuOpen(false);
+        if (!confirm('确定清空当前会话的所有消息吗？')) return;
+        clearCurrent();
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)] safe-area-inset-top">
             {/* 顶栏 */}
-            <header className="flex items-center gap-3 px-4 h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg safe-area-top">
+            <header className="flex items-center gap-2 px-3 h-14 border-b border-[var(--color-border)] bg-[var(--color-bg)]/80 backdrop-blur-lg safe-area-top">
                 <button
                     onClick={onBack}
-                    className="p-1.5 -ml-1.5 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
+                    className="p-1.5 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
                     aria-label="返回"
                 >
                     <ArrowLeft size={22} className="text-[var(--color-text)]" />
                 </button>
-                <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center">
+                <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="flex items-center gap-2 flex-1 min-w-0 px-1 py-1 rounded-lg hover:bg-[var(--color-bg-secondary)] transition-colors"
+                >
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center flex-shrink-0">
                         <Sparkles size={15} className="text-white" />
                     </div>
-                    <span className="font-bold text-[var(--color-text)]">AI 助手</span>
+                    <span className="font-bold text-[var(--color-text)] truncate">AI 助手</span>
+                </button>
+                <button
+                    onClick={() => startNewSession()}
+                    className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
+                    aria-label="新建对话"
+                >
+                    <SquarePen size={19} className="text-[var(--color-text)]" />
+                </button>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        onClick={() => setMenuOpen(v => !v)}
+                        className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] transition-colors"
+                        aria-label="更多"
+                    >
+                        <MoreVertical size={19} className="text-[var(--color-text)]" />
+                    </button>
+                    <AnimatePresence>
+                        {menuOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -6 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -6 }}
+                                transition={{ duration: 0.12 }}
+                                className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-lg overflow-hidden z-10"
+                            >
+                                <button
+                                    onClick={handleCompress}
+                                    disabled={isCompressing || isSending}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-40 transition-colors text-left"
+                                >
+                                    <Archive size={15} className="text-[var(--color-text-secondary)]" />
+                                    {isCompressing ? '压缩中…' : '压缩历史'}
+                                </button>
+                                <button
+                                    onClick={handleClearCurrent}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] transition-colors text-left border-t border-[var(--color-border)]/50"
+                                >
+                                    <Trash2 size={15} className="text-[var(--color-text-secondary)]" />
+                                    清空当前会话
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </header>
 
@@ -240,6 +425,16 @@ export function AgentChat({ onBack }: AgentChatProps) {
                     </div>
                 </div>
             )}
+
+            <SessionDrawer
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                sessions={sessions}
+                activeSessionId={activeSessionId}
+                onSelect={selectSession}
+                onNew={startNewSession}
+                onDelete={handleDeleteSession}
+            />
         </div>
     );
 }

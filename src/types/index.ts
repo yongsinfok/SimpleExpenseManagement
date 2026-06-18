@@ -146,6 +146,8 @@ export interface AIMessage {
     toolResults?: AIToolResult[]; // 工具执行结果（与 tool 角色配合）
     isStreaming?: boolean; // 是否正在流式生成（不入库，仅 UI 状态）
     error?: boolean; // 该条消息是否为错误气泡
+    isSummary?: boolean; // 是否为「压缩历史」生成的摘要消息
+    sessionId?: string; // 所属会话 ID（v4）
     createdAt: string;
 }
 
@@ -154,6 +156,14 @@ export interface AIPreference {
     id: string;
     key: string; // 如 monthly_saving_target
     value: string; // 如 "RM 1000"
+    updatedAt: string;
+}
+
+// AI 对话会话
+export interface AISession {
+    id: string;
+    title: string;
+    createdAt: string;
     updatedAt: string;
 }
 
