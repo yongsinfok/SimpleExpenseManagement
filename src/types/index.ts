@@ -147,6 +147,7 @@ export interface AIMessage {
     isStreaming?: boolean; // 是否正在流式生成（不入库，仅 UI 状态）
     error?: boolean; // 该条消息是否为错误气泡
     isSummary?: boolean; // 是否为「压缩历史」生成的摘要消息
+    summaryCount?: number; // 该摘要折叠了多少条原文（仅 isSummary 消息用）
     sessionId?: string; // 所属会话 ID（v4）
     createdAt: string;
 }

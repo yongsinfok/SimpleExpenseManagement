@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, ArrowRight, Wallet, ArrowUpRight, ArrowDownLeft, Zap, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowRight, Wallet, ArrowUpRight, ArrowDownLeft, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader } from '../components/ui';
 import { getIcon } from '../utils/icons';
@@ -12,10 +12,9 @@ import { cn } from '../utils/cn';
 
 interface HomePageProps {
     onViewAllBills: () => void;
-    onOpenAgent: () => void;
 }
 
-export function Home({ onViewAllBills, onOpenAgent }: HomePageProps) {
+export function Home({ onViewAllBills }: HomePageProps) {
     const monthTransactions = useMonthTransactions();
     const todayTransactions = useTodayTransactions();
     const monthSummary = useTransactionSummary(monthTransactions);
@@ -84,23 +83,6 @@ export function Home({ onViewAllBills, onOpenAgent }: HomePageProps) {
             initial="hidden"
             animate="visible"
         >
-            {/* AI 助手入口 */}
-            <motion.button
-                onClick={onOpenAgent}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full flex items-center gap-3 p-4 rounded-[1.5rem] bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-primary)]/[0.03] border border-[var(--color-primary)]/20 hover:border-[var(--color-primary)]/40 transition-all active:scale-[0.98] group"
-            >
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] flex items-center justify-center shadow-lg shadow-[var(--color-primary)]/20 flex-shrink-0">
-                    <Sparkles size={20} className="text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                    <p className="text-sm font-black text-[var(--color-text)] tracking-tight">AI 理财助手</p>
-                    <p className="text-[11px] text-[var(--color-text-secondary)]">问问本月能存多少钱、预算还剩多少</p>
-                </div>
-                <ArrowRight size={16} className="text-[var(--color-primary)] opacity-60 group-hover:translate-x-0.5 transition-transform" strokeWidth={2.5} />
-            </motion.button>
-
             {/* Main Asset Display */}
             <motion.div variants={itemVariants}>
                 <Card

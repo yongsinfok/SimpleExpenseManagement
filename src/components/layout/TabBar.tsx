@@ -1,7 +1,7 @@
-import { Home, List, PieChart, User, Plus, Target } from 'lucide-react';
+import { Home, List, PieChart, User, Plus, Target, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export type TabId = 'home' | 'bills' | 'add' | 'charts' | 'savings' | 'profile';
+export type TabId = 'home' | 'bills' | 'add' | 'charts' | 'savings' | 'agent' | 'profile';
 
 interface TabBarProps {
     activeTab: TabId;
@@ -15,6 +15,7 @@ const tabs = [
     { id: 'add' as const, label: '记账', icon: Plus },
     { id: 'charts' as const, label: '图表', icon: PieChart },
     { id: 'savings' as const, label: '目标', icon: Target },
+    { id: 'agent' as const, label: 'AI', icon: Sparkles },
     { id: 'profile' as const, label: '我的', icon: User },
 ];
 
@@ -54,7 +55,7 @@ export function TabBar({ activeTab, onTabChange, onAddClick }: TabBarProps) {
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={`
-                                relative flex flex-col items-center justify-center gap-1.5 py-1 px-4 min-w-[64px]
+                                relative flex flex-col items-center justify-center gap-1.5 py-1 px-2 min-w-[48px]
                                 transition-all duration-300
                                 ${isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-muted)]'}
                                 hover:text-[var(--color-primary-light)]
