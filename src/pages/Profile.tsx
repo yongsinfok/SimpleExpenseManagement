@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
-import { CreditCard, PieChart, Download, Upload, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock, Sparkles, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { CreditCard, PieChart, Download, Upload, Shield, Wallet, ChevronRight, Settings, Sun, Moon, Monitor, Database, Lock, Sparkles, Trash2, Fingerprint } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAccounts } from '../hooks/useTransactions';
 import { useSecurity } from '../contexts/SecurityContext';
+import { isBiometricSupported } from '../utils/webauthn';
 import { Modal, NumberPad, Card, PinDots } from '../components/ui';
 import { db, aiPreferenceOperations, aiSessionOperations } from '../db/database';
 import { getApiKey, setApiKey } from '../agent/chatService';
@@ -18,8 +19,15 @@ type ProfileView = 'main' | 'accounts' | 'categories' | 'budgets';
 export function ProfilePage() {
     const accounts = useAccounts();
     const [view, setView] = useState<ProfileView>('main');
-    const { hasPin, setPin, removePin } = useSecurity();
+    const { hasPin, setPin, removePin, biometricEnabled, enableBiometric, disableBiometric } = useSecurity();
     const { theme, setTheme } = useTheme();
+
+    const [biometricSupported, setBiometricSupported] = useState(false);
+    useEffect(() => {
+        let cancelled = false;
+        isBiometricSupported().then((ok) => { if (!cancelled) setBiometricSupported(ok); });
+        return () => { cancelled = true; };
+    }, []);
 
     const [showPinSetup, setShowPinSetup] = useState(false);
     const [pinStep, setPinStep] = useState<'create' | 'confirm'>('create');
@@ -187,6 +195,24 @@ export function ProfilePage() {
                     setInputPin('');
                 }
             }
+        }
+    };
+
+    const handleBiometricToggle = async () => {
+        if (biometricEnabled) {
+            disableBiometric();
+            toast.success('已关闭面容/指纹解锁');
+            return;
+        }
+        if (!hasPin) {
+            toast.error('请先设置应用锁 PIN 码');
+            return;
+        }
+        try {
+            await enableBiometric();
+            toast.success('已开启面容/指纹解锁');
+        } catch {
+            toast('未启用，已取消');
         }
     };
 
@@ -358,8 +384,47 @@ export function ProfilePage() {
                 <p className="px-2 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">高级与安全</p>
                 <Card padding="none" shadow="md" className="overflow-hidden">
                     <div className="divide-y divide-[var(--color-border)]/30">
+                        <button
+                            onClick={handlePinAction}
+                            className="w-full flex items-center gap-4 p-5 hover:bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-all group"
+                        >
+                            <div className="w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center group-hover:bg-[var(--color-primary)]/[0.08] transition-colors">
+                                <Lock size={20} className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-primary)]" strokeWidth={2.5} />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <p className="text-sm font-black text-[var(--color-text)] tracking-tight">应用锁设置</p>
+                                <p className="text-[11px] font-medium text-[var(--color-text-muted)] opacity-60">{hasPin ? '已通过 PIN 码保护' : '未开启锁屏验证'}</p>
+                            </div>
+                            <ChevronRight size={18} className="text-[var(--color-text-muted)] opacity-40" />
+                        </button>
+
+                        {biometricSupported && (
+                            <button
+                                onClick={handleBiometricToggle}
+                                className="w-full flex items-center gap-4 p-5 hover:bg-[var(--color-bg-secondary)] active:scale-[0.98] transition-all group"
+                            >
+                                <div className="w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center group-hover:bg-[var(--color-primary)]/[0.08] transition-colors">
+                                    <Fingerprint size={20} className={cn("stroke-[2.5]", biometricEnabled ? "text-[var(--color-primary)]" : "text-[var(--color-text-secondary)] group-hover:text-[var(--color-primary)]")} />
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <p className="text-sm font-black text-[var(--color-text)] tracking-tight">面容/指纹解锁</p>
+                                    <p className="text-[11px] font-medium text-[var(--color-text-muted)] opacity-60">
+                                        {biometricEnabled ? '已开启 · Face ID / 指纹快速解锁' : '用 Face ID 或指纹快速解锁'}
+                                    </p>
+                                </div>
+                                <span className={cn(
+                                    "w-11 h-6 rounded-full p-0.5 transition-colors flex-shrink-0",
+                                    biometricEnabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-border)]"
+                                )}>
+                                    <span className={cn(
+                                        "block w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
+                                        biometricEnabled ? "translate-x-5" : "translate-x-0"
+                                    )} />
+                                </span>
+                            </button>
+                        )}
+
                         {[
-                            { icon: Lock, label: '应用锁设置', desc: hasPin ? '已通过 PIN 码保护' : '未开启锁屏验证', onClick: handlePinAction },
                             { icon: Download, label: '导出备份', desc: '导出全量 JSON 备份数据', onClick: handleExportData },
                             { icon: Upload, label: '导入备份', desc: '从 JSON 文件恢复数据', onClick: handleImportData },
                             { icon: Shield, label: '抹除所有数据', desc: '立即永久清除本地所有数据', onClick: handleClearData, danger: true },

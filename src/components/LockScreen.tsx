@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Lock, Unlock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Lock, Unlock, Fingerprint } from 'lucide-react';
 import { toast } from 'sonner';
 import { NumberPad, PinDots } from './ui';
 import { useSecurity } from '../contexts/SecurityContext';
@@ -9,17 +9,42 @@ const SHAKE_DURATION = 500;
 const CLEAR_DELAY = 500;
 
 export function LockScreen() {
-    const { isLocked, verifyPin, unlock } = useSecurity();
+    const { isLocked, verifyPin, unlock, biometricEnabled, unlockWithBiometric } = useSecurity();
     const [pin, setPin] = useState('');
     const [error, setError] = useState(false);
     const [shake, setShake] = useState(false);
+    const [bioBusy, setBioBusy] = useState(false);
+    // 每次进入锁定状态只自动弹一次生物识别，避免循环
+    const autoPromptedRef = useRef(false);
 
     useEffect(() => {
         if (!isLocked) {
             setPin('');
             setError(false);
+            autoPromptedRef.current = false;
+            return;
         }
-    }, [isLocked]);
+        // 锁定 + 已开启生物识别：自动触发一次
+        if (biometricEnabled && !autoPromptedRef.current) {
+            autoPromptedRef.current = true;
+            void unlockWithBiometric();
+        }
+    }, [isLocked, biometricEnabled, unlockWithBiometric]);
+
+    const triggerBiometric = async () => {
+        if (bioBusy) return;
+        setBioBusy(true);
+        try {
+            const ok = await unlockWithBiometric();
+            if (!ok && !error) {
+                // 失败/取消：静默，留在 PIN 界面
+            }
+        } catch {
+            // 静默
+        } finally {
+            setBioBusy(false);
+        }
+    };
 
     const handlePinChange = (value: string) => {
         if (value.length > PIN_LENGTH) return;
@@ -71,6 +96,19 @@ export function LockScreen() {
                     hideDecimal
                 />
             </div>
+
+            {biometricEnabled && (
+                <button
+                    onClick={() => {
+                        triggerBiometric();
+                    }}
+                    disabled={bioBusy}
+                    className="mt-10 flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-xs font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                >
+                    <Fingerprint size={16} strokeWidth={2.5} className={bioBusy ? 'animate-pulse' : ''} />
+                    {bioBusy ? '识别中…' : '使用面容/指纹解锁'}
+                </button>
+            )}
 
             <button
                 onClick={() => {
